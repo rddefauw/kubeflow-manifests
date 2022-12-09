@@ -149,6 +149,8 @@ def get_cfn_client(region):
 def get_s3_client(region):
     return boto3.client("s3", region_name=region)
 
+def get_datasync_client(region):
+    return boto3.client("datasync", region_name=region)
 
 def get_logs_client(region):
     return boto3.client("logs", region_name=region)

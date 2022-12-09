@@ -10,7 +10,9 @@ Similarly, if you are upgrading your EKS cluster itself, you may want to preserv
 
 In order to perform a blue/green upgrade, you should use RDS and S3 for the database and artifact storage. That decouples these storage layers from the kubernetes cluster and the Kubeflow components running in the cluster. You can also choose to use a clone of the storage layers for the new deployment, in case temporarily using a new version of Kubeflow introduces any incompatible changes in the database.
 
-## Optional: Cloning the storage layers
+## High level scenarios and steps
+
+### Optional: Cloning the storage layers
 
 Cloning the storage layers to use for a new deployment of Kubeflow provides an easier fail-back path. Cloning the database requires two steps:
 
@@ -19,7 +21,7 @@ Cloning the storage layers to use for a new deployment of Kubeflow provides an e
 
 Cloning the S3 bucket is also easy using the [s3 sync](https://docs.aws.amazon.com/cli/latest/reference/s3/sync.html) command. For buckets with large numbers of objects, setting the [max_concurrent_requests](https://docs.aws.amazon.com/cli/latest/topic/s3-config.html#max-concurrent-requests) and [max_queue_size](https://docs.aws.amazon.com/cli/latest/topic/s3-config.html#max-queue-size) options will give better performance.
 
-## Upgrading Kubeflow
+### Upgrading Kubeflow
 
 Let's start with the scenario where we want to upgrade Kubeflow but use the same version of kubernetes. The high level steps are:
 
@@ -30,7 +32,7 @@ Let's start with the scenario where we want to upgrade Kubeflow but use the same
 * If you ran the tests during a maintenance window, redirect production traffic to the new cluster. Or, if changes were made to the production database and S3 bucket while you were testing, repeat this procedure during a maintenance window so that the cloned database and S3 bucket are up to date.
 * If you encounter problems, you can fail back to the original cluster.
 
-## Upgrading kubernetes
+### Upgrading kubernetes
 
 Next, let's consider the case where you want to upgrade the EKS cluster to a newer version of kubernetes. EKS provides a managed in-place [upgrade path](https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html) for EKS clusters and managed node groups. However, you should test your Kubeflow deployment against the newer version of kubernetes before upgrading a production cluster. Alternatively, you can simply deploy a new EKS cluster using the new kubernetes version and test Kubeflow on the new cluster. 
 
@@ -42,3 +44,36 @@ The high level steps are:
 * Run any tests necessary.
 * If you ran the tests during a maintenance window, redirect production traffic to the new cluster. Or, if changes were made to the production database and S3 bucket while you were testing, repeat this procedure during a maintenance window so that the cloned database and S3 bucket are up to date.
 * If you encounter problems, you can fail back to the original cluster.
+
+## Detailed steps
+
+### Step 1: Deploy a new EKS cluster
+
+Similar to the process in [Create an EKS Cluster]({{< ref "/docs/deployment/create-eks-cluster.md" >}}), we'll use `eksctl` to create a new cluster. Review the more detailed information in [Create an EKS Cluster]({{< ref "/docs/deployment/create-eks-cluster.md" >}}) before proceeding.
+
+In the code below, note that you need to provide a new cluster name (`BLUE_CLUSTER_NAME`) and specify a cluster version (`BLUE_CLUSTER_VERSION`). If you are upgrading EKS, specify the new version you want to use. If you are upgrading Kubeflow, use the same version as the production EKS cluster. 
+
+```bash
+export BLUE_CLUSTER_NAME=$BLUE_CLUSTER_NAME
+export CLUSTER_REGION=$CLUSTER_REGION
+export BLUE_CLUSTER_VERSION=1.23
+```
+
+Run the following command to create an EKS cluster:
+```bash
+eksctl create cluster \
+--name ${BLUE_CLUSTER_NAME} \
+--version ${BLUE_CLUSTER_VERSION} \
+--region ${CLUSTER_REGION} \
+--nodegroup-name linux-nodes \
+--node-type m5.xlarge \
+--nodes 5 \
+--nodes-min 5 \
+--nodes-max 10 \
+--managed \
+--with-oidc
+```
+
+If you have performed any other customizations on the production cluster, be sure to perform those on the new cluster as well.
+
+### Step 2: Clone database
