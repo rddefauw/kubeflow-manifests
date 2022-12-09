@@ -105,3 +105,18 @@ Now execute the upgrade script.
         --db_subnet_group_name_blue $DB_SUBNET_GROUP_NAME_BLUE
 ```
 
+### Deploy Kubeflow
+
+At this point, switch your environment variables to use the `blue` cluster.
+
+```bash
+export CLUSTER_NAME_GREEN=rdkf3
+export S3_BUCKET_GREEN=rd-kf-3a-bucket
+export DB_INSTANCE_NAME_GREEN=rd-kf-3-rds
+export DB_SUBNET_GROUP_NAME_GREEN=rd-db-sg-3
+```
+
+```bash
+cd $REPO_ROOT
+make deploy-kubeflow INSTALLATION_OPTION=kustomize DEPLOYMENT_OPTION=rds-s3
+```
