@@ -76,4 +76,32 @@ eksctl create cluster \
 
 If you have performed any other customizations on the production cluster, be sure to perform those on the new cluster as well.
 
-### Step 2: Clone database
+### Step 2: Clone database and S3 bucket
+
+First define the name of the new database instance, bucket, and database subnet group, plus a name to use for an IAM role for DataSync.
+
+```bash
+export S3_BUCKET_BLUE=$S3_BUCKET_BLUE
+export DATASYNC_ROLE_NAME=datasyncrolekubeflow
+export DB_INSTANCE_NAME_BLUE=$DB_INSTANCE_NAME_BLUE
+export DB_SUBNET_GROUP_NAME_BLUE=$DB_SUBNET_GROUP_NAME_BLUE
+```
+
+Now execute the upgrade script.
+
+```bash
+    cd $REPO_ROOT
+    cd tests/e2e
+    PYTHONPATH=.. python utils/rds-s3/auto-rds-s3-upgrade.py \
+        --region $CLUSTER_REGION \
+        --bucket_green $S3_BUCKET \
+        --bucket_blue $S3_BUCKET_BLUE \
+        --datasync_role_name $DATASYNC_ROLE_NAME \
+        --cluster_blue $BLUE_CLUSTER_NAME \
+        --db_instance_name_green $DB_INSTANCE_NAME \
+        --db_instance_name_blue $DB_INSTANCE_NAME_BLUE \
+        --s3_secret_name $S3_SECRET_NAME \
+        --rds_secret_name $RDS_SECRET_NAME \
+        --db_subnet_group_name_blue $DB_SUBNET_GROUP_NAME_BLUE
+```
+

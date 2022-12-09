@@ -106,11 +106,11 @@ def setup_s3(s3_client, datasync_client, iam_client):
     clone_s3_bucket(datasync_client, iam_client)
 
 def does_datasync_role_exist(iam_client):
-    roles = iam_client.list_roles()["Roles"]
-    for role in roles:
-        if role["RoleName"] == DATASYNC_ROLE_NAME:
-            return role["Arn"]
-    return None
+    try:
+        role = iam_client.get_role(RoleName=DATASYNC_ROLE_NAME)
+        return role["Role"]["Arn"]
+    except iam_client.exceptions.NoSuchEntityException:
+        return None
 
 def create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn):
     datasync_iam_trust = {
@@ -178,6 +178,8 @@ def clone_s3_bucket(datasync_client, iam_client):
     datasync_role_arn = does_datasync_role_exist(iam_client)
     if datasync_role_arn is None:
         datasync_role_arn = create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn)
+        print("Waiting for new IAM role to propagate")
+        time.sleep(10)
     else:
         print(f"Skipping DataSync role creation, role '{DATASYNC_ROLE_NAME}' already exists!")
     
@@ -211,8 +213,7 @@ def clone_s3_bucket(datasync_client, iam_client):
             'Atime': 'BEST_EFFORT',
             'Mtime': 'PRESERVE',
             'PreserveDeletedFiles': 'REMOVE',
-            'TransferMode': 'CHANGED',
-            'ObjectTags': 'PRESERVE'
+            'TransferMode': 'CHANGED'
         }
     )
     task_arn = response['TaskArn']
@@ -285,6 +286,7 @@ def setup_rds(rds_client, eks_client, ec2_client):
     print_banner("RDS Setup")
 
     if not does_database_exist(rds_client):
+        print("Creating snapshot...")
         snapshot_id = snapshot_db(rds_client) 
 
         setup_db_instance(
@@ -376,7 +378,6 @@ def create_db_instance(rds_client, eks_client, ec2_client, snapshot_id):
         DBInstanceClass=DB_INSTANCE_TYPE,
         MultiAZ=True,
         PubliclyAccessible=False,
-        DBName=DB_NAME,
         Engine="mysql",
         StorageType=DB_STORAGE_TYPE,
         DBSubnetGroupName=DB_SUBNET_GROUP_NAME_BLUE,
@@ -627,14 +628,6 @@ parser.add_argument(
     help=f"Unique identifier for the blue RDS database instance. Default is set to {DB_INSTANCE_NAME_DEFAULT_BLUE}",
     required=False,
 )
-DB_NAME_DEFAULT = "kubeflow"
-parser.add_argument(
-    "--db_name",
-    type=str,
-    default=DB_NAME_DEFAULT,
-    help=f"Name of the metadata database. Default is set to {DB_NAME_DEFAULT}",
-    required=False,
-)
 DB_INSTANCE_TYPE_DEFAULT = "db.m5.large"
 parser.add_argument(
     "--db_instance_type",
@@ -658,24 +651,6 @@ parser.add_argument(
     default=DB_SUBNET_GROUP_NAME_DEFAULT,
     help=f"Default is set to {DB_SUBNET_GROUP_NAME_DEFAULT}",
     required=False,
-)
-parser.add_argument(
-    "--s3_aws_access_key_id",
-    type=str,
-    help="""
-    This parameter allows to explicitly specify the access key ID to use for the setup.
-    The access key ID is used to create the S3 bucket and is saved using the secrets manager.
-    """,
-    required=True,
-)
-parser.add_argument(
-    "--s3_aws_secret_access_key",
-    type=str,
-    help="""
-    This parameter allows to explicitly specify the secret access key to use for the setup.
-    The secret access key is used to create the S3 bucket and is saved using the secrets manager.
-    """,
-    required=True,
 )
 RDS_SECRET_NAME = "rds-secret"
 parser.add_argument(
@@ -701,11 +676,8 @@ if __name__ == "__main__":
     CLUSTER_NAME_BLUE = args.cluster_blue
     S3_BUCKET_NAME_BLUE = args.bucket_blue
     S3_BUCKET_NAME_GREEN = args.bucket_green
-    S3_ACCESS_KEY_ID = args.s3_aws_access_key_id
-    S3_SECRET_ACCESS_KEY = args.s3_aws_secret_access_key
     DB_INSTANCE_NAME_BLUE = args.db_instance_name_blue
     DB_INSTANCE_NAME_GREEN = args.db_instance_name_green
-    DB_NAME = args.db_name
     DB_INSTANCE_TYPE = args.db_instance_type
     DB_STORAGE_TYPE = args.db_storage_type
     DB_SUBNET_GROUP_NAME_BLUE = args.db_subnet_group_name_blue
