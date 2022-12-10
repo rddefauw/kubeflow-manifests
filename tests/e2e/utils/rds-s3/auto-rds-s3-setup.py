@@ -855,7 +855,7 @@ parser.add_argument(
     metavar="DATASYNC_ROLE_NAME",
     default=DATASYNC_ROLE_NAME_DEFAULT,
     help="Your DataSync IAM role name",
-    required="--upgrade" in sys.argv
+    required=False
 )
 parser.add_argument(
     "--prior_rds_secret_name",
