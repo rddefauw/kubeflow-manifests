@@ -3,6 +3,8 @@ import boto3
 import subprocess
 import json
 import yaml
+import sys
+import time
 
 from importlib.metadata import metadata
 from e2e.fixtures.cluster import create_iam_service_account
@@ -12,6 +14,8 @@ from e2e.utils.utils import (
     get_rds_client,
     get_eks_client,
     get_s3_client,
+    get_datasync_client,
+    get_iam_client,
     get_secrets_manager_client,
     kubectl_apply,
     print_banner,
@@ -37,7 +41,9 @@ def main():
         region=CLUSTER_REGION,
     )
     secrets_manager_client = get_secrets_manager_client(CLUSTER_REGION)
-    setup_s3(s3_client, secrets_manager_client)
+    datasync_client = get_datasync_client( region=CLUSTER_REGION )
+    iam_client = get_iam_client( region=CLUSTER_REGION )
+    setup_s3(s3_client, secrets_manager_client, datasync_client, iam_client)
     rds_client = get_rds_client(CLUSTER_REGION)
     eks_client = get_eks_client(CLUSTER_REGION)
     ec2_client = get_ec2_client(CLUSTER_REGION)
@@ -96,12 +102,146 @@ def verify_kubectl_is_installed():
             "Prerequisite not met : kubectl could not be found, make sure it is installed or in your PATH!"
         )
 
+def does_datasync_role_exist(iam_client):
+    try:
+        role = iam_client.get_role(RoleName=DATASYNC_ROLE_NAME)
+        return role["Role"]["Arn"]
+    except iam_client.exceptions.NoSuchEntityException:
+        return None
 
-def setup_s3(s3_client, secrets_manager_client):
+def create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn):
+    datasync_iam_trust = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "datasync.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    response = iam_client.create_role(
+        RoleName=DATASYNC_ROLE_NAME,
+        AssumeRolePolicyDocument=json.dumps(datasync_iam_trust)
+    )
+    datasync_role_arn = response['Role']['Arn']
+    datasync_s3_access = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                    "s3:GetBucketLocation",
+                    "s3:ListBucket",
+                    "s3:ListBucketMultipartUploads"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                    src_bucket_arn,
+                    tgt_bucket_arn
+                ]
+            },
+            {
+                "Action": [
+                    "s3:AbortMultipartUpload",
+                    "s3:DeleteObject",
+                    "s3:GetObject",
+                    "s3:ListMultipartUploadParts",
+                    "s3:GetObjectTagging",
+                    "s3:PutObjectTagging",
+                    "s3:PutObject"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                    f"{src_bucket_arn}/*",
+                    f"{tgt_bucket_arn}/*"
+                ]
+            }
+        ]
+    }
+    response = iam_client.put_role_policy(
+        RoleName=DATASYNC_ROLE_NAME,
+        PolicyName='datasync_s3_kubeflow',
+        PolicyDocument=json.dumps(datasync_s3_access)
+    )
+    return datasync_role_arn
+
+def clone_s3_bucket(datasync_client, iam_client):
+    print(f"Cloning S3 objects from {PRIOR_BUCKET} into {S3_BUCKET_NAME}...")
+
+    src_bucket_arn = f"arn:aws:s3:::{PRIOR_BUCKET}"
+    tgt_bucket_arn = f"arn:aws:s3:::{S3_BUCKET_NAME}"
+    datasync_role_arn = does_datasync_role_exist(iam_client)
+    if datasync_role_arn is None:
+        datasync_role_arn = create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn)
+        print("Waiting for new IAM role to propagate")
+        time.sleep(10)
+    else:
+        print(f"Skipping DataSync role creation, role '{DATASYNC_ROLE_NAME}' already exists!")
+    
+    response = datasync_client.create_location_s3(
+        Subdirectory='',
+        S3StorageClass='STANDARD',
+        S3BucketArn=src_bucket_arn,
+        S3Config={
+            'BucketAccessRoleArn': datasync_role_arn
+        }
+    )
+    src_location = response['LocationArn']
+    response = datasync_client.create_location_s3(
+        Subdirectory='',
+        S3StorageClass='STANDARD',
+        S3BucketArn=tgt_bucket_arn,
+        S3Config={
+            'BucketAccessRoleArn': datasync_role_arn
+        }
+    )
+    tgt_location = response['LocationArn']
+
+    ctime = int(time.time())
+    response = datasync_client.create_task(
+        SourceLocationArn=src_location,
+        DestinationLocationArn=tgt_location,
+        Name=f"kubeflow-sync-{ctime}",
+        Options={
+            'VerifyMode': 'POINT_IN_TIME_CONSISTENT',
+            'OverwriteMode': 'ALWAYS',
+            'Atime': 'BEST_EFFORT',
+            'Mtime': 'PRESERVE',
+            'PreserveDeletedFiles': 'REMOVE',
+            'TransferMode': 'CHANGED'
+        }
+    )
+    task_arn = response['TaskArn']
+
+    print("Launching DataSync task...")
+    response = datasync_client.start_task_execution(
+        TaskArn=task_arn
+    )
+    task_exec_arn = response['TaskExecutionArn']
+
+    task_status = 'QUEUED'
+    while task_status not in ['SUCCESS', 'ERROR']:
+        response = datasync_client.describe_task_execution(
+            TaskExecutionArn=task_exec_arn
+        )
+        task_status = response['Status']
+        if task_status == 'ERROR':
+            raise Exception(f"S3 cloning task failed: {task_exec_arn}")
+        print(f"Transfer task status: {task_status}")
+        print(f"Files to transfer: {response['EstimatedFilesToTransfer']}")
+        print(f"Bytes to transfer: {response['EstimatedBytesToTransfer']}")
+        time.sleep(30)
+
+    print("S3 objects cloned!")
+
+def setup_s3(s3_client, secrets_manager_client, datasync_client, iam_client):
     print_banner("S3 Setup")
     setup_s3_bucket(s3_client)
+    if AM_UPGRADING:
+        clone_s3_bucket(datasync_client, iam_client)
     setup_s3_secrets(secrets_manager_client)
-
 
 def setup_s3_bucket(s3_client):
     if not does_bucket_exist(s3_client):
@@ -157,6 +297,24 @@ def create_s3_secret(secrets_manager_client, s3_secret_name):
 
     print("S3 secret created!")
 
+def snapshot_db(rds_client):
+    ctime = int(time.time())
+    snapshot_id = f"kf-rds-snap-{ctime}"
+    response = rds_client.create_db_snapshot(
+        DBSnapshotIdentifier=snapshot_id,
+        DBInstanceIdentifier=PRIOR_DB_INSTANCE_NAME
+    )
+
+    snapshot_status = 'creating'
+    while snapshot_status != 'available':
+        response = rds_client.describe_db_snapshots(
+            DBInstanceIdentifier=PRIOR_DB_INSTANCE_NAME,
+            DBSnapshotIdentifier=snapshot_id
+        )
+        snapshot_status = response['DBSnapshots'][0]['Status']
+
+    print("Database snapshot created!")
+    return snapshot_id
 
 def setup_rds(rds_client, secrets_manager_client, eks_client, ec2_client):
     print_banner("RDS Setup")
@@ -168,9 +326,16 @@ def setup_rds(rds_client, secrets_manager_client, eks_client, ec2_client):
             # Avoiding overwriting an existing secret with a new DB endpoint in case that secret is being used with an existing installation
             raise Exception(f"A RDS DB instance was not created because a secret with the name {RDS_SECRET_NAME} already exists. To create the instance, delete the existing secret or provide a unique name for a new secret to be created.")
 
-        db_root_password = setup_db_instance(
-            rds_client, secrets_manager_client, eks_client, ec2_client
-        )
+        if AM_UPGRADING:
+            print("Creating snapshot...")
+            snapshot_id = snapshot_db(rds_client) 
+            db_root_password = setup_db_instance(
+                rds_client, secrets_manager_client, eks_client, ec2_client, snapshot_id
+            )
+        else:
+            db_root_password = setup_db_instance(
+                rds_client, secrets_manager_client, eks_client, ec2_client
+            )
 
         create_rds_secret(secrets_manager_client, RDS_SECRET_NAME, db_root_password)
     else:
@@ -190,10 +355,10 @@ def does_database_exist(rds_client):
     return len(matching_databases) > 0
 
 
-def setup_db_instance(rds_client, secrets_manager_client, eks_client, ec2_client):
+def setup_db_instance(rds_client, secrets_manager_client, eks_client, ec2_client, snapshot_id = None):
     setup_db_subnet_group(rds_client, eks_client, ec2_client)
     return create_db_instance(
-        rds_client, secrets_manager_client, eks_client, ec2_client
+        rds_client, secrets_manager_client, eks_client, ec2_client, snapshot_id
     )
 
 
@@ -252,36 +417,59 @@ def get_cluster_private_subnet_ids(eks_client, ec2_client):
     return list(map(get_subnet_id, private_subnets))
 
 
-def create_db_instance(rds_client, secrets_manager_client, eks_client, ec2_client):
+def create_db_instance(rds_client, secrets_manager_client, eks_client, ec2_client, snapshot_id = None):
     print("Creating DB instance...")
 
     vpc_security_group_id = get_vpc_security_group_id(eks_client)
 
-    db_root_password = get_db_root_password_or_generate_one(secrets_manager_client)
+    if AM_UPGRADING:
+        db_root_password = read_old_db_root_password(secrets_manager_client)
 
-    rds_client.create_db_instance(
-        DBName=DB_NAME,
-        DBInstanceIdentifier=DB_INSTANCE_NAME,
-        AllocatedStorage=DB_INITIAL_STORAGE,
-        DBInstanceClass=DB_INSTANCE_TYPE,
-        Engine="mysql",
-        MasterUsername=DB_ROOT_USER,
-        MasterUserPassword=db_root_password,
-        VpcSecurityGroupIds=[vpc_security_group_id],
-        DBSubnetGroupName=DB_SUBNET_GROUP_NAME,
-        BackupRetentionPeriod=DB_BACKUP_RETENTION_PERIOD,
-        MultiAZ=True,
-        PubliclyAccessible=False,
-        StorageType=DB_STORAGE_TYPE,
-        DeletionProtection=True,
-        MaxAllocatedStorage=DB_MAX_STORAGE,
-    )
+        rds_client.restore_db_instance_from_db_snapshot(
+            DBInstanceIdentifier=DB_INSTANCE_NAME,
+            DBSnapshotIdentifier=snapshot_id,
+            DBInstanceClass=DB_INSTANCE_TYPE,
+            MultiAZ=True,
+            PubliclyAccessible=False,
+            Engine="mysql",
+            StorageType=DB_STORAGE_TYPE,
+            DBSubnetGroupName=DB_SUBNET_GROUP_NAME,
+            DeletionProtection=True,
+            VpcSecurityGroupIds=[vpc_security_group_id]
+        )
+    else:
+        db_root_password = get_db_root_password_or_generate_one(secrets_manager_client)
+
+        rds_client.create_db_instance(
+            DBName=DB_NAME,
+            DBInstanceIdentifier=DB_INSTANCE_NAME,
+            AllocatedStorage=DB_INITIAL_STORAGE,
+            DBInstanceClass=DB_INSTANCE_TYPE,
+            Engine="mysql",
+            MasterUsername=DB_ROOT_USER,
+            MasterUserPassword=db_root_password,
+            VpcSecurityGroupIds=[vpc_security_group_id],
+            DBSubnetGroupName=DB_SUBNET_GROUP_NAME,
+            BackupRetentionPeriod=DB_BACKUP_RETENTION_PERIOD,
+            MultiAZ=True,
+            PubliclyAccessible=False,
+            StorageType=DB_STORAGE_TYPE,
+            DeletionProtection=True,
+            MaxAllocatedStorage=DB_MAX_STORAGE,
+        )
 
     print("DB instance created!")
 
     wait_for_rds_db_instance_to_become_available(rds_client)
 
     return db_root_password
+
+def read_old_db_root_password(secrets_manager_client):
+    response = secrets_manager_client.get_secret_value(
+        SecretId=PRIOR_RDS_SECRET_NAME
+    )
+    response_json = json.loads(response['SecretString'])
+    return response_json['password']
 
 
 def get_db_root_password_or_generate_one(secrets_manager_client):
@@ -643,6 +831,38 @@ parser.add_argument(
     help=f"Name of the secret containing S3 related credentials. Default is set to {S3_SECRET_NAME}",
     required=False,
 )
+parser.add_argument(
+    "--upgrade", 
+    help="Upgrade from a previous kubeflow installation. Requires also passing in --prior_bucket and --prior_database",
+    action='store_true'
+)
+parser.add_argument(
+    "--prior_bucket", 
+    type=str,
+    help="If upgrading, name of S3 bucket used in previous installation",
+    required="--upgrade" in sys.argv
+)
+parser.add_argument(
+    "--prior_database", 
+    type=str,
+    help="If upgrading, name of RDS database used in previous installation",
+    required="--upgrade" in sys.argv
+)
+DATASYNC_ROLE_NAME_DEFAULT = "datasyncrolekubeflow"
+parser.add_argument(
+    "--datasync_role_name",
+    type=str,
+    metavar="DATASYNC_ROLE_NAME",
+    default=DATASYNC_ROLE_NAME_DEFAULT,
+    help="Your DataSync IAM role name",
+    required="--upgrade" in sys.argv
+)
+parser.add_argument(
+    "--prior_rds_secret_name",
+    type=str,
+    help=f"Name of the secret containing RDS related credentials for the existing database when upgrading", 
+    required="--upgrade" in sys.argv
+)
 
 args, _ = parser.parse_known_args()
 
@@ -664,5 +884,12 @@ if __name__ == "__main__":
     DB_SUBNET_GROUP_NAME = args.db_subnet_group_name
     RDS_SECRET_NAME = args.rds_secret_name
     S3_SECRET_NAME = args.s3_secret_name
+    AM_UPGRADING = args.upgrade
+    if AM_UPGRADING:
+        print_banner("Upgrade mode on: Cloning data from prior installation of kubeflow")
+        PRIOR_BUCKET = args.prior_bucket
+        PRIOR_DB_INSTANCE_NAME = args.prior_database
+        PRIOR_RDS_SECRET_NAME = args.prior_rds_secret_name
+        DATASYNC_ROLE_NAME = args.datasync_role_name
 
     main()
