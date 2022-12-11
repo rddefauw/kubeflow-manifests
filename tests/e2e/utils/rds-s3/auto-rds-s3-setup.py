@@ -176,7 +176,7 @@ def clone_s3_bucket(datasync_client, iam_client):
     if datasync_role_arn is None:
         datasync_role_arn = create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn)
         print("Waiting for new IAM role to propagate")
-        time.sleep(10)
+        time.sleep(30)
     else:
         print(f"Skipping DataSync role creation, role '{DATASYNC_ROLE_NAME}' already exists!")
     
@@ -312,6 +312,8 @@ def snapshot_db(rds_client):
             DBSnapshotIdentifier=snapshot_id
         )
         snapshot_status = response['DBSnapshots'][0]['Status']
+        print(f"Snapshot status: {snapshot_status}")
+        time.sleep(30)
 
     print("Database snapshot created!")
     return snapshot_id
