@@ -178,6 +178,17 @@ Once complete, you can follow the rest of the normal process starting with Step 
 
 #### Final EFS configuration
 
+Re-run the EFS setup script to reinstall the storage class, which may have been overridden during the other setup steps.
+
+```bash
+cd $REPO_ROOT/tests/e2e
+python utils/auto-efs-setup.py \
+    --region $CLUSTER_REGION \
+    --cluster $CLUSTER_NAME \
+    --efs_file_system_name $VOLUME_NAME \
+    --efs_security_group_name $SECURITY_GROUP_TO_CREATE
+```
+
 If using EFS, set up the PVC.
 
 ```bash
