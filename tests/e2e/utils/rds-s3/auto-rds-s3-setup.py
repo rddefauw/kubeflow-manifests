@@ -174,7 +174,7 @@ def create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn):
 def get_efs_volume_info(efs_client, efs_volume_name):
     response = efs_client.describe_file_systems()
     for fs in response['FileSystems']:
-        if fs['Name'] == efs_volume_name:
+        if 'Name' in fs and fs['Name'] == efs_volume_name:
             return fs['FileSystemId'], fs['FileSystemArn']
     raise Exception(f"Could not file EFS volume with name {efs_volume_name}")
 
