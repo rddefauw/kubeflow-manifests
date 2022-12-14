@@ -14,6 +14,7 @@ from e2e.utils.utils import (
     get_rds_client,
     get_eks_client,
     get_s3_client,
+    get_efs_client,
     get_datasync_client,
     get_iam_client,
     get_secrets_manager_client,
@@ -44,9 +45,12 @@ def main():
     datasync_client = get_datasync_client( region=CLUSTER_REGION )
     iam_client = get_iam_client( region=CLUSTER_REGION )
     setup_s3(s3_client, secrets_manager_client, datasync_client, iam_client)
-    rds_client = get_rds_client(CLUSTER_REGION)
-    eks_client = get_eks_client(CLUSTER_REGION)
     ec2_client = get_ec2_client(CLUSTER_REGION)
+    eks_client = get_eks_client(CLUSTER_REGION)
+    if EFS_UPGRADING:
+        efs_client = get_efs_client( region=CLUSTER_REGION )
+        clone_efs_volume(datasync_client, ec2_client, efs_client, eks_client)
+    rds_client = get_rds_client(CLUSTER_REGION)
     setup_rds(rds_client, secrets_manager_client, eks_client, ec2_client)
     setup_cluster_secrets()
     setup_kubeflow_pipeline()
@@ -166,6 +170,100 @@ def create_datasync_role(iam_client, src_bucket_arn, tgt_bucket_arn):
         PolicyDocument=json.dumps(datasync_s3_access)
     )
     return datasync_role_arn
+
+def get_efs_volume_info(efs_client, efs_volume_name):
+    response = efs_client.describe_file_systems()
+    for fs in response['FileSystems']:
+        if fs['Name'] == efs_volume_name:
+            return fs['FileSystemId'], fs['FileSystemArn']
+    raise Exception(f"Could not file EFS volume with name {efs_volume_name}")
+
+def get_sg_id(ec2_client, sg_name):
+    response = ec2_client.describe_security_groups(
+        Filters=[
+            dict(Name='group-name', Values=[sg_name])
+        ]
+    )
+    return response['SecurityGroups'][0]['GroupId']
+
+def get_account_id():
+    return boto3.client('sts').get_caller_identity().get('Account')
+
+def clone_efs_volume(datasync_client, ec2_client, efs_client, eks_client):
+    print(f"Cloning EFS data from {PRIOR_EFS_VOLUME} into {EFS_VOLUME}...")
+
+    src_volume_id, src_volume_arn = get_efs_volume_info(efs_client, PRIOR_EFS_VOLUME)
+    tgt_volume_id, tgt_volume_arn = get_efs_volume_info(efs_client, EFS_VOLUME)
+    acct_id = get_account_id()
+    src_sg_id = get_sg_id(ec2_client, PRIOR_EFS_SG)
+    tgt_sg_id = get_sg_id(ec2_client, EFS_SG)
+    src_sg_arn = f"arn:aws:ec2:{CLUSTER_REGION}:{acct_id}:security-group/{src_sg_id}"
+    tgt_sg_arn = f"arn:aws:ec2:{CLUSTER_REGION}:{acct_id}:security-group/{tgt_sg_id}"
+
+    src_subnet_ids = get_cluster_private_subnet_ids(eks_client, ec2_client, PRIOR_CLUSTER_NAME)
+    src_subnet_arn = f"arn:aws:ec2:{CLUSTER_REGION}:{acct_id}:subnet/{src_subnet_ids[0]}"
+    tgt_subnet_ids = get_cluster_private_subnet_ids(eks_client, ec2_client, CLUSTER_NAME)
+    tgt_subnet_arn = f"arn:aws:ec2:{CLUSTER_REGION}:{acct_id}:subnet/{tgt_subnet_ids[0]}"
+    
+    response = datasync_client.create_location_efs(
+        Subdirectory='/',
+        EfsFilesystemArn=src_volume_arn,
+        Ec2Config={
+            'SubnetArn': src_subnet_arn,
+            'SecurityGroupArns': [
+                src_sg_arn
+            ]
+        }
+    )
+    src_location = response['LocationArn']
+    response = datasync_client.create_location_efs(
+        Subdirectory='/',
+        EfsFilesystemArn=tgt_volume_arn,
+        Ec2Config={
+            'SubnetArn': tgt_subnet_arn,
+            'SecurityGroupArns': [
+                tgt_sg_arn
+            ]
+        }
+    )
+    tgt_location = response['LocationArn']
+
+    ctime = int(time.time())
+    response = datasync_client.create_task(
+        SourceLocationArn=src_location,
+        DestinationLocationArn=tgt_location,
+        Name=f"kubeflow-sync-{ctime}",
+        Options={
+            'VerifyMode': 'POINT_IN_TIME_CONSISTENT',
+            'OverwriteMode': 'ALWAYS',
+            'Atime': 'BEST_EFFORT',
+            'Mtime': 'PRESERVE',
+            'PreserveDeletedFiles': 'REMOVE',
+            'TransferMode': 'CHANGED'
+        }
+    )
+    task_arn = response['TaskArn']
+
+    print("Launching DataSync task...")
+    response = datasync_client.start_task_execution(
+        TaskArn=task_arn
+    )
+    task_exec_arn = response['TaskExecutionArn']
+
+    task_status = 'QUEUED'
+    while task_status not in ['SUCCESS', 'ERROR']:
+        response = datasync_client.describe_task_execution(
+            TaskExecutionArn=task_exec_arn
+        )
+        task_status = response['Status']
+        if task_status == 'ERROR':
+            raise Exception(f"EFS cloning task failed: {task_exec_arn}")
+        print(f"Transfer task status: {task_status}")
+        print(f"Files to transfer: {response['EstimatedFilesToTransfer']}")
+        print(f"Bytes to transfer: {response['EstimatedBytesToTransfer']}")
+        time.sleep(30)
+
+    print("EFS objects cloned!")
 
 def clone_s3_bucket(datasync_client, iam_client):
     print(f"Cloning S3 objects from {PRIOR_BUCKET} into {S3_BUCKET_NAME}...")
@@ -384,7 +482,7 @@ def does_db_subnet_group_exist(rds_client):
 def create_db_subnet_group(rds_client, eks_client, ec2_client):
     print("Creating DB subnet group...")
 
-    subnet_ids = get_cluster_private_subnet_ids(eks_client, ec2_client)
+    subnet_ids = get_cluster_private_subnet_ids(eks_client, ec2_client, CLUSTER_NAME)
 
     rds_client.create_db_subnet_group(
         DBSubnetGroupName=DB_SUBNET_GROUP_NAME,
@@ -395,8 +493,8 @@ def create_db_subnet_group(rds_client, eks_client, ec2_client):
     print("DB subnet group created!")
 
 
-def get_cluster_private_subnet_ids(eks_client, ec2_client):
-    subnet_ids = eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"][
+def get_cluster_private_subnet_ids(eks_client, ec2_client, cluster_name):
+    subnet_ids = eks_client.describe_cluster(name=cluster_name)["cluster"][
         "resourcesVpcConfig"
     ]["subnetIds"]
 
@@ -865,6 +963,41 @@ parser.add_argument(
     help=f"Name of the secret containing RDS related credentials for the existing database when upgrading", 
     required="--upgrade" in sys.argv
 )
+parser.add_argument(
+    "--upgrade_efs", 
+    help="Upgrade from a previous EFS volume. Requires also passing in --prior_efs_volume and --efs_volume",
+    action='store_true'
+)
+parser.add_argument(
+    "--prior_efs_volume",
+    type=str,
+    help=f"Name of the EFS volume used in the original installation",
+    required="--upgrade_efs" in sys.argv
+)
+parser.add_argument(
+    "--efs_volume",
+    type=str,
+    help=f"Name of the EFS volume for the new installation",
+    required="--upgrade_efs" in sys.argv
+)
+parser.add_argument(
+    "--efs_security_group_name",
+    type=str,
+    help=f"Name of the EFS security group for the new installation",
+    required="--upgrade_efs" in sys.argv
+)
+parser.add_argument(
+    "--prior_efs_security_group_name",
+    type=str,
+    help=f"Name of the EFS security group for the old installation",
+    required="--upgrade_efs" in sys.argv
+)
+parser.add_argument(
+    "--prior_cluster",
+    type=str,
+    help=f"Name of the previous installation's cluster",
+    required="--upgrade_efs" in sys.argv
+)
 
 args, _ = parser.parse_known_args()
 
@@ -887,11 +1020,19 @@ if __name__ == "__main__":
     RDS_SECRET_NAME = args.rds_secret_name
     S3_SECRET_NAME = args.s3_secret_name
     AM_UPGRADING = args.upgrade
+    EFS_UPGRADING = args.upgrade_efs
     if AM_UPGRADING:
         print_banner("Upgrade mode on: Cloning data from prior installation of kubeflow")
         PRIOR_BUCKET = args.prior_bucket
         PRIOR_DB_INSTANCE_NAME = args.prior_database
         PRIOR_RDS_SECRET_NAME = args.prior_rds_secret_name
         DATASYNC_ROLE_NAME = args.datasync_role_name
+    if EFS_UPGRADING:
+        print("Also cloning EFS volume")
+        EFS_VOLUME = args.efs_volume
+        PRIOR_EFS_VOLUME = args.prior_efs_volume
+        EFS_SG = args.efs_security_group_name
+        PRIOR_EFS_SG = args.prior_efs_security_group_name
+        PRIOR_CLUSTER_NAME = args.prior_cluster
 
     main()
