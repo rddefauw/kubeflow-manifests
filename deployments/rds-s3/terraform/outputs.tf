@@ -57,10 +57,16 @@ output "rds_endpoint" {
   value       = try(module.kubeflow_components.rds_endpoint, null)
   description = "The address of the RDS endpoint"
 }
+output "rds_secret_name" {
+  value       = try(module.kubeflow_components.rds_secret_name, null)
+}
 
 output "s3_bucket_name" {
   value       = try(module.kubeflow_components.s3_bucket_name, null)
   description = "The name of the created S3 bucket"
+}
+output "s3_secret_name" {
+  value       = try(module.kubeflow_components.s3_secret_name, null)
 }
 
 output "vpc_private_subnets" {
@@ -76,4 +82,8 @@ output "vpc_public_subnets" {
 output "vpc_id" {
   description = "VPC ID"
   value       = module.vpc.vpc_id
+}
+
+output "cluster_sg_id" {
+  value = module.eks_blueprints.cluster_primary_security_group_id
 }

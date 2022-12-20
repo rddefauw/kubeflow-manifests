@@ -210,6 +210,7 @@ module "kubeflow_components" {
   vpc_id     = data.terraform_remote_state.production.outputs.vpc_id
   subnet_ids = var.publicly_accessible ? data.terraform_remote_state.production.outputs.vpc_public_subnets : data.terraform_remote_state.production.outputs.vpc_private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
+  db_security_group_id = data.terraform_remote_state.production.outputs.cluster_sg_id
   db_name = var.db_name
   db_username = var.db_username
   db_password = var.db_password
@@ -231,4 +232,8 @@ module "kubeflow_components" {
   minio_aws_access_key_id = var.minio_aws_access_key_id
   minio_aws_secret_access_key = var.minio_aws_secret_access_key
 
+  s3_secret_name = data.terraform_remote_state.production.outputs.s3_secret_name
+  s3_bucket_name = data.terraform_remote_state.production.outputs.s3_bucket_name
+  rds_secret_name = data.terraform_remote_state.production.outputs.rds_secret_name
+  rds_endpoint = data.terraform_remote_state.production.outputs.rds_endpoint
 }

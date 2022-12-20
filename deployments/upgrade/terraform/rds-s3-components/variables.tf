@@ -50,6 +50,9 @@ variable "security_group_id" {
   type        = string
   description = "SecurityGroup Id of a EKS Worker Node"
 }
+variable "db_security_group_id" {
+  type        = string
+}
 
 variable "db_name" {
   type        = string
@@ -184,4 +187,17 @@ variable "notebook_idleness_check_period" {
   description = "How frequently the controller should poll each Notebook to update its LAST_ACTIVITY_ANNOTATION (minutes)"
   type = string
   default = 5
+}
+
+variable "s3_secret_name" {
+  type = string
+}
+variable "s3_bucket_name" {
+  type = string
+}
+variable "rds_secret_name" {
+  type = string
+}
+variable "rds_endpoint" {
+  type = string
 }

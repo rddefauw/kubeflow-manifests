@@ -29,6 +29,15 @@ locals {
   secrets_manager_chart = [for k,v in local.secrets_manager_chart_map : k if v == true][0]
 }
 
+resource "aws_security_group_rule" "connect_backup_cluster_to_rds" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  security_group_id = var.db_security_group_id
+  source_security_group_id = var.security_group_id
+}
+
 resource "kubernetes_namespace" "kubeflow" {
   metadata {
     labels = {
@@ -54,47 +63,11 @@ module "kubeflow_secrets_manager_irsa" {
   eks_oidc_provider_arn             = var.addon_context.eks_oidc_provider_arn
 }
 
-resource "random_password" "db_password" {
-  count = var.generate_db_password ? 1 : 0
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-
-module "rds" {
-  count = var.use_rds ? 1 : 0
-  source            = "../../../../iaac/terraform/aws-infra/rds"
-  vpc_id     = var.vpc_id
-  subnet_ids = var.subnet_ids
-  security_group_id = var.security_group_id
-  db_name = var.db_name
-  db_username = var.db_username
-  db_password = coalesce(var.db_password, try(random_password.db_password[0].result, null))
-  db_class = var.db_class
-  db_allocated_storage = var.db_allocated_storage
-  backup_retention_period = var.backup_retention_period
-  storage_type = var.storage_type
-  deletion_protection = var.deletion_protection
-  max_allocated_storage = var.max_allocated_storage
-  publicly_accessible = var.publicly_accessible
-  multi_az = var.multi_az
-  secret_recovery_window_in_days = var.secret_recovery_window_in_days
-}
-
-module "s3" {
-  count = var.use_s3 ? 1 : 0
-  source            = "../../../../iaac/terraform/aws-infra/s3"
-  force_destroy_bucket = var.force_destroy_s3_bucket
-  minio_aws_access_key_id = var.minio_aws_access_key_id
-  minio_aws_secret_access_key = var.minio_aws_secret_access_key
-  secret_recovery_window_in_days = var.secret_recovery_window_in_days
-}
-
 module "filter_secrets_manager_set_values" {
   source            = "../../../../iaac/terraform/utils/set-values-filter"
   set_values = {
-    "rds.secretName" = try(module.rds[0].rds_secret_name, null),
-    "s3.secretName" = try(module.s3[0].s3_secret_name, null),
+    "rds.secretName" = var.rds_secret_name,
+    "s3.secretName" = var.s3_secret_name
   }
 }
 
@@ -107,7 +80,7 @@ module "secrets_manager" {
   }
 
   addon_context = var.addon_context
-  depends_on = [kubernetes_namespace.kubeflow, module.rds, module.s3]
+  depends_on = [kubernetes_namespace.kubeflow]
 }
 
 module "kubeflow_issuer" {
@@ -195,8 +168,8 @@ module "kubeflow_istio_resources" {
 module "filter_kfp_set_values" {
   source            = "../../../../iaac/terraform/utils/set-values-filter"
   set_values = {
-    "rds.dbHost" = try(module.rds[0].rds_endpoint, null),
-    "s3.bucketName" = try(module.s3[0].s3_bucket_name ,null),
+    "rds.dbHost" = var.rds_endpoint,
+    "s3.bucketName" = var.s3_bucket_name,
     "s3.minioServiceRegion" = coalesce(var.minio_service_region, var.addon_context.aws_region_name)
     "rds.mlmdDb" = var.mlmdb_name,
     "s3.minioServiceHost" = var.minio_service_host
