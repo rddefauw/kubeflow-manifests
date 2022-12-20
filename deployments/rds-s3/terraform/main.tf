@@ -260,3 +260,25 @@ module "vpc" {
 
   tags = local.tags
 }
+
+module "iam_iam-role-for-service-accounts-eks" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.9.2"
+}
+
+module "iam_eks_role" {
+  source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  role_name = "eks-velero-backup"
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks_blueprints.eks_oidc_provider_arn
+      namespace_service_accounts = ["velero:velero-server"]
+    }
+  }
+}
+
+module "velero_role" {
+  source = "./velero-role"
+  velero_role_name = module.iam_eks_role.iam_role_name
+}

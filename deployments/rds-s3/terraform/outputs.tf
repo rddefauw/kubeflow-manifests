@@ -77,3 +77,8 @@ output "vpc_id" {
   description = "VPC ID"
   value       = module.vpc.vpc_id
 }
+
+output "velero_bucket" {
+  description = "Velero bucket name"
+  value       = module.velero_role.s3_bucket_name
+}

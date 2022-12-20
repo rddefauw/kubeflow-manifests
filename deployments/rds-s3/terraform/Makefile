@@ -12,6 +12,9 @@ delete: delete-kubeflow-components \
  delete-vpc
 	terraform destroy -auto-approve
 
+deploy-velero: init \
+  create-velero-role
+
 init:
 	terraform init
 
@@ -22,6 +25,10 @@ create-vpc:
 create-eks-cluster:
 	terraform apply -target="module.eks_blueprints" -auto-approve
 	terraform output -raw configure_kubectl | bash
+
+create-velero-role:
+	terraform apply -target="module.iam_eks_role" -auto-approve
+	terraform apply -target="module.velero_role" -auto-approve
 
 deploy-eks-blueprints-k8s-addons:
 	terraform apply -target="module.eks_blueprints_kubernetes_addons" -auto-approve

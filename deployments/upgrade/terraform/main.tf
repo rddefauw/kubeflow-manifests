@@ -248,5 +248,5 @@ module "iam_eks_role" {
 module "velero_role" {
   source = "./velero-role"
   velero_role_name = module.iam_eks_role.iam_role_name
-  velero_bucket = "rd-velero"
+  velero_bucket = data.terraform_remote_state.production.outputs.velero_bucket
 }
