@@ -1,18 +1,3 @@
-output "vpc_private_subnet_cidr" {
-  description = "VPC private subnet CIDR"
-  value       = module.vpc.private_subnets_cidr_blocks
-}
-
-output "vpc_public_subnet_cidr" {
-  description = "VPC public subnet CIDR"
-  value       = module.vpc.public_subnets_cidr_blocks
-}
-
-output "vpc_cidr" {
-  description = "VPC CIDR"
-  value       = module.vpc.vpc_cidr_block
-}
-
 output "eks_cluster_id" {
   description = "EKS cluster ID"
   value       = module.eks_blueprints.eks_cluster_id
@@ -61,19 +46,4 @@ output "rds_endpoint" {
 output "s3_bucket_name" {
   value       = try(module.kubeflow_components.s3_bucket_name, null)
   description = "The name of the created S3 bucket"
-}
-
-output "vpc_private_subnets" {
-  description = "VPC private subnets"
-  value       = module.vpc.private_subnets
-}
-
-output "vpc_public_subnets" {
-  description = "VPC public subnets"
-  value       = module.vpc.public_subnets
-}
-
-output "vpc_id" {
-  description = "VPC ID"
-  value       = module.vpc.vpc_id
 }
