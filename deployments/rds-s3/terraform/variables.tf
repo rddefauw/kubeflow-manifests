@@ -27,6 +27,12 @@ variable "node_instance_type_gpu" {
   default     = null
 }
 
+variable "velero_bucket" {
+  description = "Optional bucket name to use for velero backups"
+  type        = string
+  default     = null
+}
+
 variable "use_rds" {
   type = bool
   default = true

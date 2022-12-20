@@ -8,11 +8,17 @@ Kubeflow does not natively offer an upgrade process. An in-place upgrade often w
 
 ## Configure Velero in production cluster
 
-First, we will configure Velero in the production cluster.
+First, we will configure Velero in the production cluster. Create an S3 bucket to use in the same region as the production EKS cluster. Edit the file `sample.auto.tfvars` and specify the name of the S3 bucket to use:
+
+```
+velero_bucket=<velero bucket>
+```
+
+Now deploy the change:
 
 ```bash
 cd $REPO_ROOT/deployments/rds-s3/terraform
-make deploy-velero
+make deploy
 ```
 
 ## Deploy backup EKS cluster

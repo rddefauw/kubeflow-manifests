@@ -13,6 +13,9 @@ locals {
 
   using_gpu = var.node_instance_type_gpu != null
 
+  using_velero  = var.velero_bucket != null
+  velero_bucket_name = local.using_velero ? var.velero_bucket : ""
+
   # fix ordering using toset
   available_azs_cpu = toset(data.aws_ec2_instance_type_offerings.availability_zones_cpu.locations)
   available_azs_gpu = toset(try(data.aws_ec2_instance_type_offerings.availability_zones_gpu[0].locations, []))
@@ -148,6 +151,8 @@ module "eks_blueprints_kubernetes_addons" {
   enable_aws_fsx_csi_driver = true
 
   enable_nvidia_device_plugin = local.using_gpu
+  enable_velero = local.using_velero
+  velero_backup_s3_bucket = local.velero_bucket_name
 
   secrets_store_csi_driver_helm_config = {
     namespace   = "kube-system"
@@ -226,27 +231,4 @@ module "kubeflow_components" {
   minio_aws_access_key_id = var.minio_aws_access_key_id
   minio_aws_secret_access_key = var.minio_aws_secret_access_key
 
-}
-
-module "iam_iam-role-for-service-accounts-eks" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.9.2"
-}
-
-module "iam_eks_role" {
-  source    = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  role_name = "eks-velero-recovery"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks_blueprints.eks_oidc_provider_arn
-      namespace_service_accounts = ["velero:velero-server"]
-    }
-  }
-}
-
-module "velero_role" {
-  source = "./velero-role"
-  velero_role_name = module.iam_eks_role.iam_role_name
-  velero_bucket = data.terraform_remote_state.production.outputs.velero_bucket
 }

@@ -2,7 +2,6 @@ SHELL := /bin/bash # Use bash syntax
 
 deploy: init \
  create-eks-cluster \
- create-velero-role \
  deploy-eks-blueprints-k8s-addons 
 
 delete: delete-kubeflow-components \
@@ -21,10 +20,6 @@ create-vpc:
 create-eks-cluster:
 	terraform apply -target="module.eks_blueprints" -auto-approve
 	terraform output -raw configure_kubectl | bash
-
-create-velero-role:
-	terraform apply -target="module.iam_eks_role" -auto-approve
-	terraform apply -target="module.velero_role" -auto-approve
 
 deploy-eks-blueprints-k8s-addons:
 	terraform apply -target="module.eks_blueprints_kubernetes_addons" -auto-approve
