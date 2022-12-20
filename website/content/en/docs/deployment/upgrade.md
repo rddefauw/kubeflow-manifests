@@ -37,3 +37,41 @@ Now deploy the backup cluster.
 ```bash
 make deploy
 ```
+
+## Execute the upgrade
+
+Switch kubectl to use the context for the production cluster.
+
+```bash
+kubectl config use-context <production context>
+```
+
+Now execute a velero backup. You should include all namespaces for your Kubeflow users.
+
+```bash
+velero backup create test1 --include-namespaces kubeflow,kubeflow-user-example-com
+```
+
+Wait until the backup is completed.
+
+```bash
+velero backup describe test1 # check for the Phase output
+```
+
+Now switch kubectl to use the context for the new cluster.
+
+```bash
+kubectl config use-context <restore context>
+```
+
+Restore the backup.
+
+```bash
+velero restore create --from-backup test1
+```
+
+Wait until the backup completes.
+
+```bash
+velero restore describe # check for the Phase output
+```
