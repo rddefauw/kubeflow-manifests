@@ -80,7 +80,7 @@ kubectl config use-context <production context>
 Now execute a velero backup. You should include all namespaces for your Kubeflow users.
 
 ```bash
-velero backup create test1 --include-namespaces kubeflow,kubeflow-user-example-com
+velero backup create test1 --include-namespaces kubeflow-user-example-com
 ```
 
 Wait until the backup is completed.
