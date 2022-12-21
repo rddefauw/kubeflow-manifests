@@ -51,6 +51,11 @@ variable "cidr_block" {
   description = "VPC CIDR block"
 }
 
+variable "efs_fs_id" {
+  type        = string
+  description = "EFS file system ID"
+}
+
 variable "subnet_ids" {
   type        = list(string)
   description = "Subnet ids of the EKS cluster"

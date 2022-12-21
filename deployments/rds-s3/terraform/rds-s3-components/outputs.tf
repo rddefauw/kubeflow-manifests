@@ -17,3 +17,8 @@ output "s3_secret_name" {
   value       = try(module.s3[0].s3_secret_name, null)
   description = "The name of the S3 secret"
 }
+
+output "efs_fs_id" {
+  value       = try(module.efs[0].efs_fs_id, null)
+  description = "The ID of the EFS file system"
+}

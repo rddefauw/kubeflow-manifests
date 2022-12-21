@@ -332,18 +332,7 @@ module "ack_sagemaker" {
   addon_context = var.addon_context
 }
 
-module "efs" {
-  count = var.use_efs ? 1 : 0
-  source            = "../../../../iaac/terraform/aws-infra/efs"
-  cluster_subnet_ids = var.subnet_ids
-  cidr_block = var.cidr_block
-  vpc_id = var.vpc_id
-}
-
 resource "kubernetes_manifest" "efs_storage_class" {
-  depends_on = [
-    module.efs
-  ]
   count = var.use_efs ? 1 : 0
   manifest = {
     "allowVolumeExpansion": true,
@@ -359,7 +348,7 @@ resource "kubernetes_manifest" "efs_storage_class" {
       "directoryPerms": "700",
       "gid": "100",
       "uid": "1000",
-      "fileSystemId": "${module.efs[0].efs_fs_id}",
+      "fileSystemId": "${var.efs_fs_id}",
       "provisioningMode": "efs-ap"
     },
     "provisioner": "efs.csi.aws.com",

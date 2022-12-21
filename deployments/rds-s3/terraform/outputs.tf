@@ -69,6 +69,10 @@ output "s3_secret_name" {
   value       = try(module.kubeflow_components.s3_secret_name, null)
 }
 
+output "efs_fs_id" {
+  value       = try(module.kubeflow_components.efs_fs_id, null)
+}
+
 output "vpc_private_subnets" {
   description = "VPC private subnets"
   value       = module.vpc.private_subnets

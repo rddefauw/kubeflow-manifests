@@ -210,6 +210,7 @@ module "kubeflow_components" {
 
   vpc_id     = data.terraform_remote_state.production.outputs.vpc_id
   cidr_block = data.terraform_remote_state.production.outputs.vpc_cidr
+  efs_fs_id = data.terraform_remote_state.production.outputs.efs_fs_id
   subnet_ids = var.publicly_accessible ? data.terraform_remote_state.production.outputs.vpc_public_subnets : data.terraform_remote_state.production.outputs.vpc_private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
   db_security_group_id = data.terraform_remote_state.production.outputs.cluster_sg_id
