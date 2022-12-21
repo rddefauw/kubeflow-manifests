@@ -41,6 +41,12 @@ variable "use_efs" {
   default = true
 }
 
+variable "use_scheduled_backup" {
+    type = bool
+    description = "Use scheduled backup plan"
+    default = false
+}
+
 variable "vpc_id" {
   type        = string
   description = "VPC of the EKS cluster"

@@ -200,6 +200,7 @@ module "kubeflow_components" {
   use_rds = var.use_rds
   use_s3 = var.use_s3
   use_efs = var.use_efs
+  use_scheduled_backup = var.use_scheduled_backup
 
   vpc_id     = module.vpc.vpc_id
   cidr_block = module.vpc.vpc_cidr_block

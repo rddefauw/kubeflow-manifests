@@ -22,3 +22,13 @@ output "efs_fs_id" {
   value       = try(module.efs[0].efs_fs_id, null)
   description = "The ID of the EFS file system"
 }
+
+output "backup_vault" {
+  value       = try(module.backups.backup_vault, null)
+  description = "The name of the AWS Backup vault"
+}
+
+output "backup_role_arn" {
+  value       = try(module.backups.backup_role_arn, null)
+  description = "The IAM role to use when taking backups"
+}

@@ -48,6 +48,11 @@ variable "use_efs" {
   default = true
 }
 
+variable "use_scheduled_backup" {
+  type = bool
+  default = false
+}
+
 variable "enable_aws_telemetry" {
   description = "Enable AWS telemetry component"
   type = bool

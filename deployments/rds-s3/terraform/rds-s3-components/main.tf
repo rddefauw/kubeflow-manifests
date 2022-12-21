@@ -367,6 +367,12 @@ module "efs" {
   vpc_id = var.vpc_id
 }
 
+module "backups" {
+  source            = "../../../../iaac/terraform/aws-infra/backup"
+  use_scheduled_backup = var.use_scheduled_backup
+  resources = flatten([var.use_efs ? [module.efs[0].efs_fs_arn] : [], var.use_s3 ? [module.s3[0].s3_bucket_arn] : [], var.use_rds ? [module.rds[0].rds_arn] : []])
+}
+
 resource "kubernetes_manifest" "efs_storage_class" {
   depends_on = [
     module.efs

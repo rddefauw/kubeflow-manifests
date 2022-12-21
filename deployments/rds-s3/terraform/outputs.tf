@@ -91,3 +91,13 @@ output "vpc_id" {
 output "cluster_sg_id" {
   value = module.eks_blueprints.cluster_primary_security_group_id
 }
+
+output "backup_vault" {
+  value       = try(module.kubeflow_components.backup_vault, null)
+  description = "The name of the AWS Backup vault"
+}
+
+output "backup_role_arn" {
+  value       = try(module.kubeflow_components.backup_role_arn, null)
+  description = "The IAM role to use when taking backups"
+}

@@ -5,3 +5,7 @@ output "rds_secret_name" {
 output "rds_endpoint" {
     value = aws_db_instance.kubeflow_db.address
 }
+
+output "rds_arn" {
+    value = aws_db_instance.kubeflow_db.arn
+}
