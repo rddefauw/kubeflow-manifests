@@ -199,8 +199,10 @@ module "kubeflow_components" {
   
   use_rds = var.use_rds
   use_s3 = var.use_s3
+  use_efs = var.use_efs
 
   vpc_id     = module.vpc.vpc_id
+  cidr_block = module.vpc.vpc_cidr_block
   subnet_ids = var.publicly_accessible ? module.vpc.public_subnets : module.vpc.private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
   db_name = var.db_name
