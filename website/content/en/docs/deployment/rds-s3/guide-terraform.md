@@ -13,7 +13,8 @@ This guide will walk you through using Terraform to:
 - Create an EKS cluster
 - Create a S3 bucket
 - Create an RDS DB instance
-- Deploy Kubeflow with RDS as a KFP and Katib persistence layer and S3 as an artifact store
+- Create an EFS file system
+- Deploy Kubeflow with RDS as a KFP and Katib persistence layer, S3 as an artifact store, EFS for persistent volumes, and Velero for supporting backups and upgrades
 
 Terraform documentation can be found [here](https://www.terraform.io/docs).
 
@@ -58,7 +59,13 @@ pwd
     export USE_RDS="true"
     # true/false flag to configure and deploy with S3
     export USE_S3="true"
+    # true/false flag to configure and deploy with EFS
+    export USE_EFS="true"
+    # true/false flag to configure and deploy with Velero
+    export USE_VELERO="true"
     ```
+
+    We strongly suggest enabling both EFS and Velero, as that will make for an easier [upgrade]({{< ref "../upgrade" >}}). path.
 
 1. Save the variables to a `.tfvars` file:
 
@@ -69,6 +76,8 @@ pwd
     generate_db_password="true"
     use_rds="${USE_RDS}"
     use_s3="${USE_S3}"
+    use_efs="${USE_EFS}"
+    using_velero = "${USE_VELERO}"
 
     # The below values are set to make cleanup easier but are not recommended for production
     deletion_protection="false"
@@ -101,6 +110,10 @@ make deploy
 ## Connect to your Kubeflow dashboard
 
 For information on connecting to your Kubeflow dashboard depending on your deployment environment, see [Port-forward (Terraform deployment)]({{< ref "../connect-kubeflow-dashboard/#port-forward-terraform-deployment" >}}). Then, [log into the Kubeflow UI]({{< ref "../connect-kubeflow-dashboard/#log-into-the-kubeflow-ui" >}}).
+
+## Check EFS configuration
+
+If you are using EFS, check the additional information starting in [Section 3 of the EFS add-on guide]({{< ref "../../add-ons/storage/efs/guide/#3.0 Using EFS storage in Kubeflow" >}}).
 
 ## Cleanup
 

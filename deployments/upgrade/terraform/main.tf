@@ -13,9 +13,6 @@ locals {
 
   using_gpu = var.node_instance_type_gpu != null
 
-  using_velero  = var.velero_bucket != null
-  velero_bucket_name = local.using_velero ? var.velero_bucket : ""
-
   # fix ordering using toset
   available_azs_cpu = toset(data.aws_ec2_instance_type_offerings.availability_zones_cpu.locations)
   available_azs_gpu = toset(try(data.aws_ec2_instance_type_offerings.availability_zones_gpu[0].locations, []))
@@ -151,8 +148,8 @@ module "eks_blueprints_kubernetes_addons" {
   enable_aws_fsx_csi_driver = true
 
   enable_nvidia_device_plugin = local.using_gpu
-  enable_velero = local.using_velero
-  velero_backup_s3_bucket = local.velero_bucket_name
+  enable_velero = var.using_velero
+  velero_backup_s3_bucket = var.using_velero ? data.terraform_remote_state.production.outputs.velero_bucket_name: ""
 
   secrets_store_csi_driver_helm_config = {
     namespace   = "kube-system"
@@ -214,26 +211,9 @@ module "kubeflow_components" {
   subnet_ids = var.publicly_accessible ? data.terraform_remote_state.production.outputs.vpc_public_subnets : data.terraform_remote_state.production.outputs.vpc_private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
   db_security_group_id = data.terraform_remote_state.production.outputs.cluster_sg_id
-  db_name = var.db_name
-  db_username = var.db_username
-  db_password = var.db_password
-  db_class = var.db_class
   mlmdb_name = var.mlmdb_name
-  db_allocated_storage = var.db_allocated_storage
-  mysql_engine_version = var.mysql_engine_version
-  backup_retention_period = var.backup_retention_period
-  storage_type = var.storage_type
-  deletion_protection = var.deletion_protection
-  max_allocated_storage = var.max_allocated_storage
-  publicly_accessible = var.publicly_accessible
-  multi_az = var.multi_az
-  secret_recovery_window_in_days = var.secret_recovery_window_in_days
-  generate_db_password = var.generate_db_password
 
   minio_service_region = var.minio_service_region
-  force_destroy_s3_bucket = var.force_destroy_s3_bucket
-  minio_aws_access_key_id = var.minio_aws_access_key_id
-  minio_aws_secret_access_key = var.minio_aws_secret_access_key
 
   s3_secret_name = data.terraform_remote_state.production.outputs.s3_secret_name
   s3_bucket_name = data.terraform_remote_state.production.outputs.s3_bucket_name

@@ -6,6 +6,8 @@ weight = 10
 
 This guide describes how to use Amazon EFS as Persistent storage on top of an existing Kubeflow deployment.  
 
+If you are using the Terraform deployment option for the RDS and S3 configuration, you can skip ahead to section 3.0, as Terraform will create the EFS file system, storage class, and persistent volume claim for you.
+
 ## 1.0 Prerequisites
 For this guide, we assume that you already have an EKS Cluster with Kubeflow installed. The FSx CSI Driver can be installed and configured as a separate resource on top of an existing Kubeflow deployment. See the [deployment options]({{< ref "/docs/deployment" >}}) and [general prerequisites]({{< ref "/docs/deployment/vanilla/guide.md" >}}) for more information.
 

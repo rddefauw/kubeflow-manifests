@@ -116,3 +116,8 @@ output "rds_arn" {
   value       = try(module.kubeflow_components.rds_arn, null)
   description = "The ARN of the RDS database"
 }
+
+output "velero_bucket_name" {
+  value       = try(module.s3[0].s3_bucket_name, null)
+  description = "The name of the bucket created for Velero"
+}

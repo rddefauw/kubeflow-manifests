@@ -1,5 +1,5 @@
 output "s3_secret_name" {
-    value = aws_secretsmanager_secret.s3_secret.name
+    value = try(aws_secretsmanager_secret.s3_secret[0].name, null)
 }
 
 output "s3_bucket_name" {
