@@ -67,6 +67,8 @@ cd $REPO_ROOT/deployments/rds-s3/terraform
 ../../../tests/e2e/utils/snapshot-state.sh
 ```
 
+The script will wait for the jobs to complete. Confirm that all backups completed successfully.
+
 ### Execute the upgrade
 
 Switch kubectl to use the context for the production cluster.
