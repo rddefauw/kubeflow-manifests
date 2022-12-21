@@ -101,3 +101,18 @@ output "backup_role_arn" {
   value       = try(module.kubeflow_components.backup_role_arn, null)
   description = "The IAM role to use when taking backups"
 }
+
+output "efs_fs_arn" {
+  value       = try(module.kubeflow_components.efs_fs_arn, null)
+  description = "The ARN of the EFS file system"
+}
+
+output "s3_bucket_arn" {
+  value       = try(module.kubeflow_components.s3_bucket_arn, null)
+  description = "The ARN of the S3 bucket"
+}
+
+output "rds_arn" {
+  value       = try(module.kubeflow_components.rds_arn, null)
+  description = "The ARN of the RDS database"
+}

@@ -24,6 +24,18 @@ resource "aws_iam_role_policy_attachment" "kubeflow_backup_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
   role       = aws_iam_role.kubeflow_backup_role.name
 }
+resource "aws_iam_role_policy_attachment" "kubeflow_restore_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
+  role       = aws_iam_role.kubeflow_backup_role.name
+}
+resource "aws_iam_role_policy_attachment" "kubeflow_backup_policy_s3" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSBackupServiceRolePolicyForS3Backup"
+  role       = aws_iam_role.kubeflow_backup_role.name
+}
+resource "aws_iam_role_policy_attachment" "kubeflow_restore_policy_s3" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSBackupServiceRolePolicyForS3Restore"
+  role       = aws_iam_role.kubeflow_backup_role.name
+}
 
 resource "aws_backup_plan" "kubeflow_plan" {
   count = var.use_scheduled_backup ? 1 : 0

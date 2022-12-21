@@ -6,7 +6,27 @@ weight = 90
 
 Kubeflow does not natively offer an upgrade process. An in-place upgrade often works, but we recommend a blue/green upgrade process that provides a fail-back capability. We will leverage integration with AWS storage and database services to let us deploy a new EKS cluster with Kubeflow and connect it to the external data stores. We will also use an open-source tool to copy certain resources from the production EKS cluster to the new one, and use AWS Backup to snapshot the state of our external data stores.
 
-## Configure Velero in production cluster
+## Upgrade methodology
+
+Using a blue/green pattern lets us deploy a new EKS cluster with a new version of kubernetes, a new version of Kubeflow, or both. We do need to transfer all relevant state from the old deployment to the new one. Once the new deployment is running, you can test it and then switch traffic if the deployment was successful. We recommend performing the upgrade and associated testing during a maintenance window, as both EKS clusters will be connected to the same underlying data stores.
+
+There are several data stores to consider.
+
+### AWS data stores
+
+The recommended configuration uses S3 for artifact storage, RDS as the database, EFS for volume storage, and Cognito as an identity provider. We will use AWS Backup to take a snapshot of S3, RDS, and EFS, so that we can restore them to a known-good state if something goes wrong with the new deployment.
+
+We will not back up Cognito as normally you don't need to make changes to identities during an upgrade test cycle.
+
+### Kubernetes resources
+
+During Kubeflow use, users create resources like notebook instances and model serving endpoints. These exist in the user-specific namespaces. We will use [Velero](https://velero.io/), an open-source tool, to backup resources from these namespaces and recover them into the new cluster.
+
+## Upgrade steps
+
+Now let's walk through a detailed example of a blue/green upgrade.
+
+### Configure Velero in production cluster
 
 First, we will configure Velero in the production cluster. Create an S3 bucket to use in the same region as the production EKS cluster. Edit the file `sample.auto.tfvars` and specify the name of the S3 bucket to use:
 
@@ -21,7 +41,7 @@ cd $REPO_ROOT/deployments/rds-s3/terraform
 make deploy
 ```
 
-## Deploy backup EKS cluster
+### Deploy backup EKS cluster
 
 Next, we will create a new `tfvars` file with the name of the backup cluster.
 
@@ -38,7 +58,16 @@ Now deploy the backup cluster.
 make deploy
 ```
 
-## Execute the upgrade
+### Execute an on-demand backup
+
+The deployment process creates an AWS Backup vault and associated IAM role to use. On your EC2 or Cloud9 instance, run this command:
+
+```bash
+cd $REPO_ROOT/deployments/rds-s3/terraform
+../../../tests/e2e/utils/snapshot-state.sh
+```
+
+### Execute the upgrade
 
 Switch kubectl to use the context for the production cluster.
 

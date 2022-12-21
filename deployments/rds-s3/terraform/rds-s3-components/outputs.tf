@@ -23,6 +23,21 @@ output "efs_fs_id" {
   description = "The ID of the EFS file system"
 }
 
+output "efs_fs_arn" {
+  value       = try(module.efs[0].efs_fs_arn, null)
+  description = "The ARN of the EFS file system"
+}
+
+output "s3_bucket_arn" {
+  value       = try(module.s3[0].s3_bucket_arn, null)
+  description = "The ARN of the S3 bucket"
+}
+
+output "rds_arn" {
+  value       = try(module.rds[0].rds_arn, null)
+  description = "The ARN of the RDS database"
+}
+
 output "backup_vault" {
   value       = try(module.backups.backup_vault, null)
   description = "The name of the AWS Backup vault"
