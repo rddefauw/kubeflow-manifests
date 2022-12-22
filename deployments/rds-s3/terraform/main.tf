@@ -125,7 +125,10 @@ module "s3" {
   count = var.using_velero ? 1 : 0
   source            = "../../../iaac/terraform/aws-infra/s3"
   force_destroy_bucket = var.force_destroy_s3_bucket
-  bucket_prefix = "kf_velero-"
+  bucket_prefix = "kf-velero-"
+  use_secrets = false
+  minio_aws_secret_access_key = ""
+  minio_aws_access_key_id = ""
 }
 
 module "eks_blueprints_kubernetes_addons" {

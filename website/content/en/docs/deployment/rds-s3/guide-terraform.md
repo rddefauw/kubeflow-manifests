@@ -86,6 +86,8 @@ pwd
     EOF
     ```
 
+    If you want to use a specific version of EKS, add the `eks_version` variable.
+
 ### (Optional) Configure Culling for Notebooks
 Enable culling for notebooks by following the [instructions]({{< ref "/docs/deployment/configure-notebook-culling.md#" >}}) in configure culling for notebooks guide.
 
