@@ -359,7 +359,8 @@ resource "kubernetes_manifest" "efs_storage_class" {
 
 resource "kubernetes_manifest" "efs_pvc" {
   depends_on = [
-    kubernetes_manifest.efs_storage_class
+    kubernetes_manifest.efs_storage_class,
+    module.kubeflow_user_namespace
   ]
   count = var.use_efs ? 1 : 0
   manifest = {
