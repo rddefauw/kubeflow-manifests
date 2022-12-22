@@ -23,5 +23,6 @@ do
     do
         JOB_STATE=`aws backup describe-backup-job --backup-job-id $JOB_ID | jq -r '.State'`
         echo $JOB_STATE
+        sleep 30
     done
 done

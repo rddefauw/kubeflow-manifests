@@ -38,8 +38,11 @@ If you want to use a newer version of Kubeflow, perform these steps.
 
 ```bash
 cd $REPO_ROOT
-export NEW_RELEASE_VERSION=<newer version>
-git checkout ${NEW_RELEASE_VERSION}
+export KUBEFLOW_RELEASE_VERSION=v1.6.1 # set to new version
+export AWS_RELEASE_VERSION=v1.6.1-aws-b1.0.0 # set to new version
+git checkout ${AWS_RELEASE_VERSION}
+rm -rf upstream
+git clone --branch ${KUBEFLOW_RELEASE_VERSION} https://github.com/kubeflow/manifests.git upstream
 ```
 
 ### Deploy backup EKS cluster
@@ -112,3 +115,13 @@ Wait until the backup completes.
 ```bash
 velero restore describe # check for the Phase output
 ```
+
+## Notes
+
+### Multiple upgrades
+
+The original production cluster deployment creates the underlying AWS storage resources in S3, RDS, and EFS. Future deployments read information about those resources from the Terraform state of the original deployment. You can continue to follow the upgrade process in the future to deploy new versions of Kubeflow and/or EKS. Just remember to use the correct kubectl contexts when executing the Velero backups.
+
+### Deleting old clusters
+
+You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS, and S3. We do use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
