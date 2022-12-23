@@ -400,30 +400,3 @@ resource "kubernetes_manifest" "efs_storage_class" {
     "volumeBindingMode": "WaitForFirstConsumer"
   }
 }
-
-resource "kubernetes_manifest" "efs_pvc" {
-  depends_on = [
-    kubernetes_manifest.efs_storage_class,
-    module.kubeflow_user_namespace
-  ]
-  count = var.use_efs ? 1 : 0
-  manifest = {
-    "apiVersion": "v1",
-    "kind": "PersistentVolumeClaim",
-    "metadata": {
-      "name": "efs-claim",
-      "namespace": "kubeflow-user-example-com"
-    },
-    "spec": {
-      "accessModes": [
-        "ReadWriteMany"
-      ],
-      "resources": {
-        "requests": {
-          "storage": "5Gi"
-        }
-      },
-      "storageClassName": "efs-sc"
-    }
-  }
-}
