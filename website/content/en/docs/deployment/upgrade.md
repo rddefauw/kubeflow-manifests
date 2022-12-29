@@ -28,6 +28,10 @@ During Kubeflow use, users create resources like notebook instances and model se
 
 Now let's walk through a detailed example of a blue/green upgrade.
 
+### Declare a maintenance window
+
+Some Kubeflow resources, like pipeline runs, take some time to persist into the database. Wait one hour after pausing user activity before starting the upgrade.
+
 ### Configure Velero in production cluster
 
 Make sure that you enabled Velero when deploying the production cluster.
@@ -86,10 +90,10 @@ Switch kubectl to use the context for the production cluster.
 kubectl config use-context <production context>
 ```
 
-Now execute a velero backup. You should include all namespaces for your Kubeflow users.
+Now execute a velero backup. We will include all namespaces as we need the user profiles and related config maps, which are not scoped to the user namespaces.
 
 ```bash
-velero backup create test1 --include-namespaces kubeflow-user-example-com
+velero backup create test1 --wait --default-volumes-to-fs-backup
 ```
 
 Wait until the backup is completed.
@@ -104,10 +108,11 @@ Now switch kubectl to use the context for the new cluster.
 kubectl config use-context <restore context>
 ```
 
-Restore the backup.
+Restore the backup. In this step, first restore all user profiles, then the associated namespaces.
 
 ```bash
-velero restore create --from-backup test1
+velero restore create --from-backup test1 --include-resources profiles,configmaps
+velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --restore-volumes true
 ```
 
 Wait until the backup completes.

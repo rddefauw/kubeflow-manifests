@@ -154,6 +154,14 @@ module "eks_blueprints_kubernetes_addons" {
   enable_nvidia_device_plugin = local.using_gpu
   enable_velero = var.using_velero
   velero_backup_s3_bucket = var.using_velero ? module.s3[0].s3_bucket_name : ""
+  velero_helm_config = {
+    set = [
+      {
+        name = "deployNodeAgent",
+        value = "true"
+      }
+    ]
+  }
 
   secrets_store_csi_driver_helm_config = {
     namespace   = "kube-system"

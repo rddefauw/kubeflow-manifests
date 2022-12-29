@@ -318,15 +318,6 @@ module "kubeflow_aws_telemetry" {
   depends_on = [module.kubeflow_training_operator]
 }
 
-module "kubeflow_user_namespace" {
-  source            = "../../../../iaac/terraform/common/user-namespace"
-  helm_config = {
-    chart = "${var.kf_helm_repo_path}/charts/common/user-namespace"
-  }  
-  addon_context = var.addon_context
-  depends_on = [module.kubeflow_aws_telemetry]
-}
-
 module "ack_sagemaker" {
   source            = "../../../../iaac/terraform/common/ack-sagemaker-controller"
   addon_context = var.addon_context
