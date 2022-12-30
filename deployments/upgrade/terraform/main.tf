@@ -151,10 +151,19 @@ module "eks_blueprints_kubernetes_addons" {
   enable_velero = var.using_velero
   velero_backup_s3_bucket = var.using_velero ? data.terraform_remote_state.production.outputs.velero_bucket_name: ""
   velero_helm_config = {
+    version     = "3.0.0",
     set = [
       {
         name = "deployNodeAgent",
         value = "true"
+      },
+      {
+        name = "configuration.defaultVolumesToFsBackup",
+        value = "true"
+      },
+      {
+        name = "snapshotsEnabled",
+        value = "false"
       }
     ]
   }

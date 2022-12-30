@@ -111,8 +111,8 @@ kubectl config use-context <restore context>
 Restore the backup. In this step, first restore all user profiles, then the associated namespaces.
 
 ```bash
-velero restore create --from-backup test1 --include-resources profiles,configmaps
-velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --restore-volumes true
+velero restore create --from-backup test1 --include-resources profiles,configmaps,pv --wait
+velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --wait
 ```
 
 Wait until the backup completes.

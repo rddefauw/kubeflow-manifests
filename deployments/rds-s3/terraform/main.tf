@@ -155,10 +155,19 @@ module "eks_blueprints_kubernetes_addons" {
   enable_velero = var.using_velero
   velero_backup_s3_bucket = var.using_velero ? module.s3[0].s3_bucket_name : ""
   velero_helm_config = {
+    version     = "3.0.0",
     set = [
       {
         name = "deployNodeAgent",
         value = "true"
+      },
+      {
+        name = "configuration.defaultVolumesToFsBackup",
+        value = "true"
+      },
+      {
+        name = "snapshotsEnabled",
+        value = "false"
       }
     ]
   }
