@@ -44,32 +44,58 @@ If your production deployment used a version of Kubeflow on AWS that did not inc
 
 ### Switch to new version of Kubeflow release
 
-If you want to use a newer version of Kubeflow, perform these steps.
+We will create a new clone of the GitHub repository for the new deployment. 
 
-```bash
-cd $REPO_ROOT
-export KUBEFLOW_RELEASE_VERSION=v1.6.1 # set to new version
-export AWS_RELEASE_VERSION=v1.6.1-aws-b1.0.0 # set to new version
-git checkout ${AWS_RELEASE_VERSION}
-rm -rf upstream
-git clone --branch ${KUBEFLOW_RELEASE_VERSION} https://github.com/kubeflow/manifests.git upstream
-```
+#### Optional: Deploy new Cloud9 or EC2 instance
+
+Using a new Cloud9 or EC2 instance lets you maintain clear separation between deployments. If you want to do this, follow the steps in [Create Ubuntu environment]({{< ref "./prerequisites/#Create Ubuntu environment" >}}). 
+
+#### Complete other prerequisites
+
+Follow the steps in [Clone repository]({{< ref "./prerequisites/#Clone repository" >}}). Be sure to use the newer version of Kubeflow in these steps.
+
+#### Optional: Deploy other prerequisites on new Cloud9 or EC2 instance
+
+If you set up a new Cloud9 or EC2 instance, follow the steps in [Install necessary tools]({{< ref "./prerequisites/#Install necessary tools" >}}) and [Configure AWS Credentials and Region for Deployment]({{< ref "./prerequisites/#Configure AWS Credentials and Region for Deployment" >}}). Then [install the Velero CLI](https://velero.io/docs/v1.10/basic-install/#install-the-cli).
 
 ### Deploy backup EKS cluster
 
-Next, we will create a new `tfvars` file with the name of the backup cluster.
+Next, we will create a new `tfvars` file with the name of the backup cluster and necessary information about the original deployment.
+
+In the new clone of the GitHub repository, go to the `upgrade` directory.
 
 ```bash
 cd $REPO_ROOT/deployments/upgrade/terraform
-cp ../../rds-s3/terraform/sample.auto.tfvars .
 ```
 
-Edit the `sample.auto.tfvars` file and make these changes:
+Copy the `sample.auto.tfvars` file from the production deployment into this directory. Edit the `sample.auto.tfvars` file and make these changes:
 
 * Set the name of the backup EKS cluster in the `cluster_name` variable. 
 * If you want to use a different version of EKS, set the `eks_version` variable.
 
 The other variables can stay the same.
+
+Next, we need to add information about the production deployment to the new `tfvars` file. In the directory for the production deployment, run:
+
+```bash
+terraform output -raw vpc_private_subnets >> upgrade.tfvars
+terraform output -raw vpc_public_subnets >> upgrade.tfvars
+terraform output -raw vpc_id >> upgrade.tfvars
+terraform output -raw velero_bucket_name >> upgrade.tfvars
+terraform output -raw vpc_cidr >> upgrade.tfvars
+terraform output -raw efs_fs_id >> upgrade.tfvars
+terraform output -raw cluster_sg_id >> upgrade.tfvars
+terraform output -raw s3_secret_name >> upgrade.tfvars
+terraform output -raw s3_bucket_name >> upgrade.tfvars
+terraform output -raw rds_secret_name >> upgrade.tfvars
+terraform output -raw rds_endpoint >> upgrade.tfvars
+```
+
+In the directory for the new deployment, copy the `upgrade.tfvars` file into the directory, then run:
+
+```bash
+cat upgrade.tfvars >> sample.auto.tfvars
+```
 
 Now deploy the backup cluster.
 
@@ -79,7 +105,7 @@ make deploy
 
 ### Execute an on-demand backup
 
-The deployment process creates an AWS Backup vault and associated IAM role to use. On your EC2 or Cloud9 instance, run this command:
+The deployment process creates an AWS Backup vault and associated IAM role to use. Go to the production deployment directory and run this script:
 
 ```bash
 cd $REPO_ROOT/deployments/rds-s3/terraform

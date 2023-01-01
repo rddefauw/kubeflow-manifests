@@ -1,11 +1,3 @@
-data "terraform_remote_state" "production" {
-  backend = "local"
-
-  config = {
-    path = "../../rds-s3/terraform/terraform.tfstate"
-  }
-}
-
 locals {
   cluster_name = var.cluster_name
   region       = var.cluster_region
@@ -38,7 +30,7 @@ locals {
     min_size        = 5
     desired_size    = 5
     max_size        = 10
-    subnet_ids      = data.terraform_remote_state.production.outputs.vpc_private_subnets
+    subnet_ids      = var.src_vpc_private_subnets
   }
 
   managed_node_group_gpu = local.using_gpu ? {
@@ -48,7 +40,7 @@ locals {
     desired_size    = 3
     max_size        = 5
     ami_type        = "AL2_x86_64_GPU"
-    subnet_ids      = data.terraform_remote_state.production.outputs.vpc_private_subnets
+    subnet_ids      = var.src_vpc_private_subnets
   } : null
 
   potential_managed_node_groups = {
@@ -118,8 +110,8 @@ module "eks_blueprints" {
   cluster_name    = local.cluster_name
   cluster_version = local.eks_version
 
-  vpc_id             = data.terraform_remote_state.production.outputs.vpc_id
-  private_subnet_ids = data.terraform_remote_state.production.outputs.vpc_private_subnets
+  vpc_id             = var.src_vpc_id
+  private_subnet_ids = var.src_vpc_private_subnets
 
   # configuration settings: https://github.com/aws-ia/terraform-aws-eks-blueprints/blob/main/modules/aws-eks-managed-node-groups/locals.tf
   managed_node_groups = local.managed_node_groups
@@ -149,7 +141,7 @@ module "eks_blueprints_kubernetes_addons" {
 
   enable_nvidia_device_plugin = local.using_gpu
   enable_velero = var.using_velero
-  velero_backup_s3_bucket = var.using_velero ? data.terraform_remote_state.production.outputs.velero_bucket_name: ""
+  velero_backup_s3_bucket = var.using_velero ? var.src_velero_bucket_name: ""
   velero_helm_config = {
     version     = "3.0.0",
     set = [
@@ -222,18 +214,18 @@ module "kubeflow_components" {
   use_s3 = var.use_s3
   use_efs = var.use_efs
 
-  vpc_id     = data.terraform_remote_state.production.outputs.vpc_id
-  cidr_block = data.terraform_remote_state.production.outputs.vpc_cidr
-  efs_fs_id = data.terraform_remote_state.production.outputs.efs_fs_id
-  subnet_ids = var.publicly_accessible ? data.terraform_remote_state.production.outputs.vpc_public_subnets : data.terraform_remote_state.production.outputs.vpc_private_subnets
+  vpc_id     = var.src_vpc_id
+  cidr_block = var.src_vpc_cidr
+  efs_fs_id = var.src_efs_fs_id
+  subnet_ids = var.publicly_accessible ? var.src_vpc_public_subnets : var.src_vpc_private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
-  db_security_group_id = data.terraform_remote_state.production.outputs.cluster_sg_id
+  db_security_group_id = var.src_cluster_sg_id
   mlmdb_name = var.mlmdb_name
 
   minio_service_region = var.minio_service_region
 
-  s3_secret_name = data.terraform_remote_state.production.outputs.s3_secret_name
-  s3_bucket_name = data.terraform_remote_state.production.outputs.s3_bucket_name
-  rds_secret_name = data.terraform_remote_state.production.outputs.rds_secret_name
-  rds_endpoint = data.terraform_remote_state.production.outputs.rds_endpoint
+  s3_secret_name = var.src_s3_secret_name
+  s3_bucket_name = var.src_s3_bucket_name
+  rds_secret_name = var.src_rds_secret_name
+  rds_endpoint = var.src_rds_endpoint
 }

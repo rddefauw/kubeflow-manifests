@@ -101,3 +101,48 @@ variable "notebook_idleness_check_period" {
   type = string
   default = 5
 }
+
+variable "src_vpc_private_subnets" {
+  description = "EKS private subnets for production cluster"
+  type = list
+}
+variable "src_vpc_public_subnets" {
+  description = "EKS public subnets for production cluster"
+  type = list
+}
+variable "src_vpc_id" {
+  description = "VPC ID"
+  type = string
+}
+variable "src_velero_bucket_name" {
+  description = "Bucket used for Velero"
+  type = string
+}
+variable "src_vpc_cidr" {
+  description = "VPC CIDR block"
+  type = string
+}
+variable "src_efs_fs_id" {
+  description = "EFS file system ID for production cluster"
+  type = string
+}
+variable "src_cluster_sg_id" {
+  description = "Cluster security group for production cluster"
+  type = string
+}
+variable "src_s3_secret_name" {
+  description = "S3 secret for production cluster"
+  type = string
+}
+variable "src_s3_bucket_name" {
+  description = "Artifact bucket for production cluster"
+  type = string
+}
+variable "src_rds_secret_name" {
+  description = "Database secret for production cluster"
+  type = string
+}
+variable "src_rds_endpoint" {
+  description = "RDS endpoint for production cluster"
+  type = string
+}
