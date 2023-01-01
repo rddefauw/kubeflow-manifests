@@ -32,9 +32,15 @@ Now let's walk through a detailed example of a blue/green upgrade.
 
 Some Kubeflow resources, like pipeline runs, take some time to persist into the database. Wait one hour after pausing user activity before starting the upgrade.
 
+### Install Velero CLI
+
+On the EC2 or Cloud9 instance you are using, [install the Velero CLI](https://velero.io/docs/v1.10/basic-install/#install-the-cli).
+
 ### Configure Velero in production cluster
 
-Make sure that you enabled Velero when deploying the production cluster.
+Make sure that you enabled Velero when deploying the production cluster. If not, enable it and redeploy the Terraform stack.
+
+If your production deployment used a version of Kubeflow on AWS that did not include support for deploying Velero with Terraform, see the note about [installing Velero manually)({{< ref "#Installing Velero manually" >}})..
 
 ### Switch to new version of Kubeflow release
 
@@ -82,6 +88,8 @@ cd $REPO_ROOT/deployments/rds-s3/terraform
 
 The script will wait for the jobs to complete. Confirm that all backups completed successfully.
 
+If the version of Kubeflow for AWS that you used to create your production cluster did not create a backup vault, you can create one manually following the [instructions in the documentation](https://docs.aws.amazon.com/aws-backup/latest/devguide/creating-a-vault.html).
+
 ### Execute the upgrade
 
 Switch kubectl to use the context for the production cluster.
@@ -123,10 +131,84 @@ velero restore describe # check for the Phase output
 
 ## Notes
 
+### Installing Velero manually
+
+If you deployed your production cluster without Velero, you will need to install it. We recommend using the [EKS Terraform Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints). 
+
+In the file `deployments/rds-s3/terraform/main.tf`, add an S3 bucket resource to use for Velero.
+
+```bash
+resource "aws_s3_bucket" "velero_store" {
+  bucket_prefix = "kf-velero-"
+  force_destroy = var.force_destroy_bucket
+}
+
+resource "aws_s3_bucket_versioning" "velero_store_versioning" {
+  bucket = aws_s3_bucket.velero_store.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifact_store_encryption" {
+  bucket = aws_s3_bucket.velero_store.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "velero_store_block_access" {
+  bucket = aws_s3_bucket.velero_store.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+```
+
+Next in the same file find the module named `eks_blueprints_kubernetes_addons`. Add the following snippet:
+
+```bash
+module "eks_blueprints_kubernetes_addons" {
+  source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.12.1"
+
+  ...
+
+  enable_velero = true
+  velero_backup_s3_bucket = aws_s3_bucket.velero_store.id
+  velero_helm_config = {
+    version     = "3.0.0",
+    set = [
+      {
+        name = "deployNodeAgent",
+        value = "true"
+      },
+      {
+        name = "configuration.defaultVolumesToFsBackup",
+        value = "true"
+      },
+      {
+        name = "snapshotsEnabled",
+        value = "false"
+      }
+    ]
+  }
+
+  ...
+}
+```
+
+Now redeploy the stack.
+
 ### Multiple upgrades
 
 The original production cluster deployment creates the underlying AWS storage resources in S3, RDS, and EFS. Future deployments read information about those resources from the Terraform state of the original deployment. You can continue to follow the upgrade process in the future to deploy new versions of Kubeflow and/or EKS. Just remember to use the correct kubectl contexts when executing the Velero backups.
 
 ### Deleting old clusters
 
-You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS, and S3. We do use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
+You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS, and S3. You should retain the backup vault as we reuse that. We also use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
