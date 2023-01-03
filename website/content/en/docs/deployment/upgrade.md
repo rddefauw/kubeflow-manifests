@@ -34,7 +34,7 @@ Some Kubeflow resources, like pipeline runs, take some time to persist into the 
 
 ### Install Velero CLI
 
-On the EC2 or Cloud9 instance you are using, [install the Velero CLI](https://velero.io/docs/v1.10/basic-install/#install-the-cli).
+On the EC2 or Cloud9 instance you are using, [install the Velero CLI](https://velero.io/docs/v1.10/basic-install/#install-the-cli). Make sure you are using version 1.10 or later.
 
 ### Configure Velero in production cluster
 
@@ -150,7 +150,7 @@ RDS_ARN=<ARN of database instance>
 
 ### Execute the upgrade
 
-Switch kubectl to use the context for the production cluster.
+On the EC2 or Cloud9 instance for the production cluster, make sure you are using the correct kubectl context.
 
 ```bash
 kubectl config use-context <production context>
@@ -178,7 +178,7 @@ Restore the backup. In this step, first restore all user profiles, then the asso
 
 ```bash
 velero restore create --from-backup test1 --include-resources profiles,configmaps --wait
-velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --wait
+velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --include-cluster-resources --wait
 ```
 
 Wait until the backup completes.

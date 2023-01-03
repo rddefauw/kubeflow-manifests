@@ -48,7 +48,8 @@ def get_cluster_eks_cluster_version(eks_client):
 def get_cluster_eks_cluster_certificate_authority_data(eks_client):
     return eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"]["certificateAuthority"]["data"]
 def get_cluster_oidc_provider(eks_client):
-    return eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"]["identity"]["oidc"]["issuer"]
+    oidc_url = eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"]["identity"]["oidc"]["issuer"]
+    return oidc_url[8:]
 
 def get_cluster_private_subnet_ids(eks_client, ec2_client):
     subnet_ids = eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"][
