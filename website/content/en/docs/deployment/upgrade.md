@@ -62,40 +62,62 @@ If you set up a new Cloud9 or EC2 instance, follow the steps in [Install necessa
 
 Next, we will create a new `tfvars` file with the name of the backup cluster and necessary information about the original deployment.
 
+#### Generate variable file for new cluster
+
 In the new clone of the GitHub repository, go to the `upgrade` directory.
 
 ```bash
 cd $REPO_ROOT/deployments/upgrade/terraform
 ```
 
-Copy the `sample.auto.tfvars` file from the production deployment into this directory. Edit the `sample.auto.tfvars` file and make these changes:
+Copy the `sample.auto.tfvars` file from the production deployment into this directory. If you did not use Terraform to create the production deployment, create the file `sample.auto.tfvars` with these entries:
+
+```bash
+cluster_name="<cluster name>"
+cluster_region="<cluster region>"
+generate_db_password="true"
+use_rds="true"
+use_s3="true"
+```
+
+Edit the `sample.auto.tfvars` file and make these changes:
 
 * Set the name of the backup EKS cluster in the `cluster_name` variable. 
 * If you want to use a different version of EKS, set the `eks_version` variable.
 
 The other variables can stay the same.
 
-Next, we need to add information about the production deployment to the new `tfvars` file. In the directory for the production deployment, run:
+#### Get information about production cluster
+
+Next, we need to add information about the production deployment to the new `tfvars` file. 
+
+On the EC2 or Cloud9 instance you used for the production deployment, go to the directory `deployments/upgrade-baseline` and run:
 
 ```bash
-terraform output -raw vpc_private_subnets >> upgrade.tfvars
-terraform output -raw vpc_public_subnets >> upgrade.tfvars
-terraform output -raw vpc_id >> upgrade.tfvars
-terraform output -raw velero_bucket_name >> upgrade.tfvars
-terraform output -raw vpc_cidr >> upgrade.tfvars
-terraform output -raw efs_fs_id >> upgrade.tfvars
-terraform output -raw cluster_sg_id >> upgrade.tfvars
-terraform output -raw s3_secret_name >> upgrade.tfvars
-terraform output -raw s3_bucket_name >> upgrade.tfvars
-terraform output -raw rds_secret_name >> upgrade.tfvars
-terraform output -raw rds_endpoint >> upgrade.tfvars
+python get_cluster_variables.py \
+    --region $CLUSTER_REGION \
+    --cluster $CLUSTER_NAME \
+    --bucket $S3_BUCKET \
+    --rds_secret_name $RDS_SECRET_NAME \
+    --s3_secret_name $S3_SECRET_NAME \
+    --efs_name $CLAIM_NAME
 ```
+
+Add a new line to the output file `upgrade.tfvars` with the name of the S3 bucket you are using for Velero:
+
+```
+src_velero_bucket_name = "<bucket>"
+```
+
+Copy the output file `upgrade.tfvars` to the EC2 or Cloud9 instance you are using for the new deployment.
 
 In the directory for the new deployment, copy the `upgrade.tfvars` file into the directory, then run:
 
 ```bash
 cat upgrade.tfvars >> sample.auto.tfvars
 ```
+
+#### Deploy new cluster
 
 Now deploy the backup cluster.
 
@@ -114,7 +136,17 @@ cd $REPO_ROOT/deployments/rds-s3/terraform
 
 The script will wait for the jobs to complete. Confirm that all backups completed successfully.
 
-If the version of Kubeflow for AWS that you used to create your production cluster did not create a backup vault, you can create one manually following the [instructions in the documentation](https://docs.aws.amazon.com/aws-backup/latest/devguide/creating-a-vault.html).
+If the version of Kubeflow for AWS that you used to create your production cluster did not create a backup vault, you can create one manually following the [instructions in the documentation](https://docs.aws.amazon.com/aws-backup/latest/devguide/creating-a-vault.html). 
+
+If you did not deploy your cluster with Terraform, you can manually enter the variables in the `snapshot-state.sh` script:
+
+```bash
+VAULT=<name of backup vault>
+ROLE_ARN=<ARN of backup role>
+EFS_ARN=<ARN of EFS file system>
+S3_ARN=<ARN of artifact bucket>
+RDS_ARN=<ARN of database instance>
+```
 
 ### Execute the upgrade
 

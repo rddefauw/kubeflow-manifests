@@ -1,5 +1,6 @@
 import argparse
 import boto3
+import json
 
 def main():
     efs_client = boto3.client('efs', region_name=CLUSTER_REGION)
@@ -20,11 +21,12 @@ def main():
         vpc_id = get_db_instance_vpc_id(rds_client)
         VFU.write(f"src_vpc_id = \"{vpc_id}\"\n")
         VFU.write(f"src_vpc_cidr = \"{get_vpc_cidr(ec2_client, vpc_id)}\"\n")
-        VFU.write(f"src_vpc_private_subnets = \"{get_cluster_private_subnet_ids(eks_client, ec2_client)}\"\n")
-        VFU.write(f"src_vpc_public_subnets = \"{get_cluster_public_subnet_ids(eks_client, ec2_client)}\"\n")
+        VFU.write(f"src_vpc_private_subnets = {json.dumps(get_cluster_private_subnet_ids(eks_client, ec2_client))}\n")
+        VFU.write(f"src_vpc_public_subnets = {json.dumps(get_cluster_public_subnet_ids(eks_client, ec2_client))}\n")
         VFU.write(f"src_rds_endpoint = \"{get_db_instance_endpoint(rds_client)}\"\n")
         VFU.write(f"src_cluster_sg_id = \"{get_vpc_security_group_id(eks_client)}\"\n")
-        VFU.write(f"src_efs_id = \"{get_efs_id(efs_client)}\"\n")
+        VFU.write(f"src_efs_fs_id = \"{get_efs_id(efs_client)}\"\n")
+
 
 def get_efs_id(efs_client):
     fs = efs_client.describe_file_systems()
@@ -69,7 +71,12 @@ def get_cluster_private_subnet_ids(eks_client, ec2_client):
     def get_subnet_id(subnet):
         return subnet["SubnetId"]
 
-    return list(map(get_subnet_id, private_subnets))
+    tmp_list = list(map(get_subnet_id, private_subnets))
+    subnets = []
+    for i in tmp_list:
+        subnets.append(i.rstrip())
+    return subnets
+
 
 def get_cluster_public_subnet_ids(eks_client, ec2_client):
     subnet_ids = eks_client.describe_cluster(name=CLUSTER_NAME)["cluster"][
@@ -92,7 +99,11 @@ def get_cluster_public_subnet_ids(eks_client, ec2_client):
     def get_subnet_id(subnet):
         return subnet["SubnetId"]
 
-    return list(map(get_subnet_id, public_subnets))
+    tmp_list = list(map(get_subnet_id, public_subnets))
+    subnets = []
+    for i in tmp_list:
+        subnets.append(i.rstrip())
+    return subnets
 
 
 def get_vpc_security_group_id(eks_client):
