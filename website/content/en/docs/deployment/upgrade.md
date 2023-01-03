@@ -161,75 +161,27 @@ velero restore describe # check for the Phase output
 
 If you deployed your production cluster without Velero, you will need to install it. We recommend using the [EKS Terraform Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints). 
 
-In the file `deployments/rds-s3/terraform/main.tf`, add an S3 bucket resource to use for Velero.
+Clone the latest copy of the GitHub repository on the EC2 or Cloud9 instance you are using for the production cluster. Make sure you have set all the proper environment variables as you did when you installed the cluster. Go to the directory `deployments/upgrade-baseline` and run this script to create a Terraform variables file:
 
 ```bash
-resource "aws_s3_bucket" "velero_store" {
-  bucket_prefix = "kf-velero-"
-  force_destroy = var.force_destroy_bucket
-}
-
-resource "aws_s3_bucket_versioning" "velero_store_versioning" {
-  bucket = aws_s3_bucket.velero_store.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "artifact_store_encryption" {
-  bucket = aws_s3_bucket.velero_store.bucket
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "velero_store_block_access" {
-  bucket = aws_s3_bucket.velero_store.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
+python get_cluster_variables.py \
+    --region $CLUSTER_REGION \
+    --cluster $CLUSTER_NAME \
+    --bucket $S3_BUCKET \
+    --rds_secret_name $RDS_SECRET_NAME \
+    --s3_secret_name $S3_SECRET_NAME \
+    --efs_name $CLAIM_NAME
 ```
 
-Next in the same file find the module named `eks_blueprints_kubernetes_addons`. Add the following snippet:
+If you do not have Terraform installed, follow the normal [installation process](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli). You will need Teerraform < 1.3.0.
+
+Now deploy the stack.
 
 ```bash
-module "eks_blueprints_kubernetes_addons" {
-  source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.12.1"
-
-  ...
-
-  enable_velero = true
-  velero_backup_s3_bucket = aws_s3_bucket.velero_store.id
-  velero_helm_config = {
-    version     = "3.0.0",
-    set = [
-      {
-        name = "deployNodeAgent",
-        value = "true"
-      },
-      {
-        name = "configuration.defaultVolumesToFsBackup",
-        value = "true"
-      },
-      {
-        name = "snapshotsEnabled",
-        value = "false"
-      }
-    ]
-  }
-
-  ...
-}
+cd terraform
+terraform init
+terraform deploy -auto-approve
 ```
-
-Now redeploy the stack.
 
 ### Multiple upgrades
 
