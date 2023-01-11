@@ -64,6 +64,8 @@ Next, we will create a new `tfvars` file with the name of the backup cluster and
 
 #### Generate variable file for new cluster
 
+Execute this step on the Cloud9 or EC2 instance you are using for the new cluster. 
+
 In the new clone of the GitHub repository, go to the `upgrade` directory.
 
 ```bash
@@ -89,9 +91,11 @@ The other variables can stay the same.
 
 #### Get information about production cluster
 
+Execute this step on the Cloud9 or EC2 instance you are using for the production cluster. 
+
 Next, we need to add information about the production deployment to the new `tfvars` file. 
 
-On the EC2 or Cloud9 instance you used for the production deployment, go to the directory `deployments/upgrade-baseline` and run:
+Go to the directory `deployments/upgrade-baseline` and run:
 
 ```bash
 python get_cluster_variables.py \
@@ -119,6 +123,8 @@ cat upgrade.tfvars >> sample.auto.tfvars
 
 #### Deploy new cluster
 
+Execute this step on the Cloud9 or EC2 instance you are using for the new cluster. 
+
 Now deploy the backup cluster.
 
 ```bash
@@ -126,6 +132,8 @@ make deploy
 ```
 
 ### Execute an on-demand backup
+
+Execute this step on the Cloud9 or EC2 instance you are using for the production cluster. 
 
 The deployment process creates an AWS Backup vault and associated IAM role to use. Go to the production deployment directory and run this script:
 
@@ -150,16 +158,38 @@ RDS_ARN=<ARN of database instance>
 
 ### Execute the upgrade
 
-On the EC2 or Cloud9 instance for the production cluster, make sure you are using the correct kubectl context.
+#### Mark the persistent volumes you want to back up
+
+Execute this section on the Cloud9 or EC2 instance you are using for the production cluster.
+
+Persistent volumes for notebooks are cluster-level resources, although the volume claims are in the user-level namespaces. However, the Velero custom resources that represent volume backups live in the `velero` namespace. We do not want to restore the entire `velero` namespace later, as that would include volumes from Velero pods.
+
+So, we will annotate the volumes we want to back up. For each persistent volume, run this command:
 
 ```bash
-kubectl config use-context <production context>
+kubectl -n <namespace> annotate pod/<pod name> backup.velero.io/backup-volumes=<volume name>
 ```
 
-Now execute a velero backup. We will include all namespaces as we need the user profiles and related config maps, which are not scoped to the user namespaces.
+For example, if the user `user@example.com` has a notebook called `mynb`, you would run:
 
 ```bash
-velero backup create test1 --wait --default-volumes-to-fs-backup
+kubectl -n kubeflow-user-example-com annotate pod/mynb-0 backup.velero.io/backup-volumes=mynb-volume
+```
+
+#### Back up resources from production cluster
+
+Execute this section on the Cloud9 or EC2 instance you are using for the production cluster.
+
+Execute a velero backup. We need to include at least the following resources:
+
+* The `velero` namespace, as it contains information about persistent volume backups
+* All user namespaces
+* Cluster-scoped resources like profiles
+
+For the sake of convenience, you can back up the entire cluster and selectively restore the correct resources later on.
+
+```bash
+velero backup create test1 --wait --default-volumes-to-fs-backup=false
 ```
 
 Wait until the backup is completed.
@@ -168,24 +198,17 @@ Wait until the backup is completed.
 velero backup describe test1 # check for the Phase output
 ```
 
-Now switch kubectl to use the context for the new cluster.
+#### Restore resources into new cluster.
+
+Execute this section on the Cloud9 or EC2 instance you are using for the new cluster.
+
+Restore the backup. You must include all user namespaces and the `velero` namespace.
 
 ```bash
-kubectl config use-context <restore context>
-```
-
-Restore the backup. In this step, first restore all user profiles, then the associated namespaces.
-
-```bash
-velero restore create --from-backup test1 --include-resources profiles,configmaps --wait
-velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com --include-cluster-resources --wait
+velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com,velero --include-cluster-resources --wait
 ```
 
 Wait until the backup completes.
-
-```bash
-velero restore describe # check for the Phase output
-```
 
 ## Notes
 
