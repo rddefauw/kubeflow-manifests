@@ -418,3 +418,45 @@ module "ack_sagemaker" {
   source            = "../../../../iaac/terraform/common/ack-sagemaker-controller"
   addon_context = var.addon_context
 }
+
+module "efs" {
+  count = var.use_efs ? 1 : 0
+  source            = "../../../../iaac/terraform/aws-infra/efs"
+  cluster_subnet_ids = var.subnet_ids
+  cidr_block = var.cidr_block
+  vpc_id = var.vpc_id
+}
+
+module "backups" {
+  source            = "../../../../iaac/terraform/aws-infra/backup"
+  use_scheduled_backup = var.use_scheduled_backup
+  resources = flatten([var.use_efs ? [module.efs[0].efs_fs_arn] : [], var.use_s3 ? [module.s3[0].s3_bucket_arn] : [], var.use_rds ? [module.rds[0].rds_arn] : []])
+}
+
+resource "kubernetes_manifest" "efs_storage_class" {
+  depends_on = [
+    module.efs
+  ]
+  count = var.use_efs ? 1 : 0
+  manifest = {
+    "allowVolumeExpansion": true,
+    "apiVersion": "storage.k8s.io/v1",
+    "kind": "StorageClass",
+    "metadata": {
+      "name": "efs-sc"
+    },
+    "mountOptions": [
+      "tls"
+    ],
+    "parameters": {
+      "directoryPerms": "700",
+      "gid": "100",
+      "uid": "1000",
+      "fileSystemId": "${module.efs[0].efs_fs_id}",
+      "provisioningMode": "efs-ap"
+    },
+    "provisioner": "efs.csi.aws.com",
+    "reclaimPolicy": "Delete",
+    "volumeBindingMode": "WaitForFirstConsumer"
+  }
+}

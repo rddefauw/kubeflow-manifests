@@ -61,8 +61,67 @@ output "rds_endpoint" {
   value       = try(module.kubeflow_components.rds_endpoint, null)
   description = "The address of the RDS endpoint"
 }
+output "rds_secret_name" {
+  value       = try(module.kubeflow_components.rds_secret_name, null)
+}
 
 output "s3_bucket_name" {
   value       = try(module.kubeflow_components.s3_bucket_name, null)
   description = "The name of the created S3 bucket"
+}
+output "s3_secret_name" {
+  value       = try(module.kubeflow_components.s3_secret_name, null)
+}
+
+output "efs_fs_id" {
+  value       = try(module.kubeflow_components.efs_fs_id, null)
+}
+
+output "vpc_private_subnets" {
+  description = "VPC private subnets"
+  value       = module.vpc.private_subnets
+}
+
+output "vpc_public_subnets" {
+  description = "VPC public subnets"
+  value       = module.vpc.public_subnets
+}
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = module.vpc.vpc_id
+}
+
+output "cluster_sg_id" {
+  value = module.eks_blueprints.cluster_primary_security_group_id
+}
+
+output "backup_vault" {
+  value       = try(module.kubeflow_components.backup_vault, null)
+  description = "The name of the AWS Backup vault"
+}
+
+output "backup_role_arn" {
+  value       = try(module.kubeflow_components.backup_role_arn, null)
+  description = "The IAM role to use when taking backups"
+}
+
+output "efs_fs_arn" {
+  value       = try(module.kubeflow_components.efs_fs_arn, null)
+  description = "The ARN of the EFS file system"
+}
+
+output "s3_bucket_arn" {
+  value       = try(module.kubeflow_components.s3_bucket_arn, null)
+  description = "The ARN of the S3 bucket"
+}
+
+output "rds_arn" {
+  value       = try(module.kubeflow_components.rds_arn, null)
+  description = "The ARN of the RDS database"
+}
+
+output "velero_bucket_name" {
+  value       = try(module.s3[0].s3_bucket_name, null)
+  description = "The name of the bucket created for Velero"
 }

@@ -11,3 +11,43 @@ output "s3_bucket_name" {
   value       = try(module.s3[0].s3_bucket_name, null)
   description = "The name of the created S3 bucket"
 }
+
+output "rds_secret_name" {
+  value       = try(module.rds[0].rds_secret_name, null)
+  description = "The name of the RDS secret"
+}
+
+output "s3_secret_name" {
+  value       = try(module.s3[0].s3_secret_name, null)
+  description = "The name of the S3 secret"
+}
+
+output "efs_fs_id" {
+  value       = try(module.efs[0].efs_fs_id, null)
+  description = "The ID of the EFS file system"
+}
+
+output "efs_fs_arn" {
+  value       = try(module.efs[0].efs_fs_arn, null)
+  description = "The ARN of the EFS file system"
+}
+
+output "s3_bucket_arn" {
+  value       = try(module.s3[0].s3_bucket_arn, null)
+  description = "The ARN of the S3 bucket"
+}
+
+output "rds_arn" {
+  value       = try(module.rds[0].rds_arn, null)
+  description = "The ARN of the RDS database"
+}
+
+output "backup_vault" {
+  value       = try(module.backups.backup_vault, null)
+  description = "The name of the AWS Backup vault"
+}
+
+output "backup_role_arn" {
+  value       = try(module.backups.backup_role_arn, null)
+  description = "The IAM role to use when taking backups"
+}

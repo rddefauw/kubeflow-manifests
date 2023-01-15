@@ -33,6 +33,12 @@ variable "kf_helm_repo_path" {
   default = "../../.."
 }
 
+variable "using_velero" {
+  description = "Enable velero for backups"
+  type        = bool 
+  default     = true
+}
+
 variable "use_rds" {
   type = bool
   default = true
@@ -46,6 +52,16 @@ variable "use_s3" {
 variable "use_cognito" {
   type = bool
   default = true
+}
+
+variable "use_efs" {
+  type = bool
+  default = true
+}
+
+variable "use_scheduled_backup" {
+  type = bool
+  default = false
 }
 
 variable "enable_aws_telemetry" {

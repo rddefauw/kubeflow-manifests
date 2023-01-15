@@ -128,6 +128,16 @@ module "eks_blueprints" {
   tags = local.tags
 }
 
+module "s3" {
+  count = var.using_velero ? 1 : 0
+  source            = "../../../iaac/terraform/aws-infra/s3"
+  force_destroy_bucket = var.force_destroy_s3_bucket
+  bucket_prefix = "kf-velero-"
+  use_secrets = false
+  minio_aws_secret_access_key = ""
+  minio_aws_access_key_id = ""
+}
+
 module "eks_blueprints_kubernetes_addons" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.12.1"
 
@@ -149,6 +159,25 @@ module "eks_blueprints_kubernetes_addons" {
   enable_aws_fsx_csi_driver = true
 
   enable_nvidia_device_plugin = local.using_gpu
+  enable_velero = var.using_velero
+  velero_backup_s3_bucket = var.using_velero ? module.s3[0].s3_bucket_name : ""
+  velero_helm_config = {
+    version     = "3.0.0",
+    set = [
+      {
+        name = "deployNodeAgent",
+        value = "true"
+      },
+      {
+        name = "configuration.defaultVolumesToFsBackup",
+        value = "true"
+      },
+      {
+        name = "snapshotsEnabled",
+        value = "false"
+      }
+    ]
+  }
 
   secrets_store_csi_driver_helm_config = {
     namespace   = "kube-system"
@@ -201,7 +230,12 @@ module "kubeflow_components" {
 
   # rds
   use_rds = var.use_rds
+  use_s3 = var.use_s3
+  use_efs = var.use_efs
+  use_scheduled_backup = var.use_efs
+
   vpc_id     = module.vpc.vpc_id
+  cidr_block = module.vpc.vpc_cidr_block
   subnet_ids = var.publicly_accessible ? module.vpc.public_subnets : module.vpc.private_subnets
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
   db_name = var.db_name
@@ -220,8 +254,6 @@ module "kubeflow_components" {
   secret_recovery_window_in_days = var.secret_recovery_window_in_days
   generate_db_password = var.generate_db_password
 
-  # s3
-  use_s3 = var.use_s3
   minio_service_region = var.minio_service_region
   force_destroy_s3_bucket = var.force_destroy_s3_bucket
   minio_aws_access_key_id = var.minio_aws_access_key_id

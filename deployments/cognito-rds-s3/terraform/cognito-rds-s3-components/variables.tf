@@ -36,6 +36,17 @@ variable "use_s3" {
   default = true
 }
 
+variable "use_efs" {
+  type = bool
+  default = true
+}
+
+variable "use_scheduled_backup" {
+    type = bool
+    description = "Use scheduled backup plan"
+    default = false
+}
+
 variable "use_cognito" {
   type = bool
   default = true
@@ -46,6 +57,11 @@ variable "use_cognito" {
 variable "vpc_id" {
   type        = string
   description = "VPC of the EKS cluster"
+}
+
+variable "cidr_block" {
+  type        = string
+  description = "VPC CIDR block"
 }
 
 variable "subnet_ids" {
