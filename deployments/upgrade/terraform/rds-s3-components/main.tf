@@ -1,10 +1,3 @@
-provider "aws" {
-  alias = "aws"
-}
-
-provider "aws" {
-  alias = "virginia"
-}
 locals {
   katib_chart_vanilla  = "${var.kf_helm_repo_path}/charts/apps/katib/vanilla"
   katib_chart_rds  = "${var.kf_helm_repo_path}/charts/apps/katib/katib-external-db-with-kubeflow"
@@ -110,7 +103,6 @@ module "kubeflow_istio" {
 }
 
 module "kubeflow_dex" {
-  count = var.use_cognito ? 0 : 1
   source            = "../../../../iaac/terraform/common/dex"
   helm_config = {
     chart = "${var.kf_helm_repo_path}/charts/common/dex"
@@ -120,7 +112,6 @@ module "kubeflow_dex" {
 }
 
 module "kubeflow_oidc_authservice" {
-  count = var.use_cognito ? 0 : 1
   source            = "../../../../iaac/terraform/common/oidc-authservice"
   helm_config = {
     chart = "${var.kf_helm_repo_path}/charts/common/oidc-authservice" 
@@ -355,45 +346,4 @@ resource "kubernetes_manifest" "efs_storage_class" {
     "reclaimPolicy": "Delete",
     "volumeBindingMode": "WaitForFirstConsumer"
   }
-}
-
-module "cognito" {
-  count = var.use_cognito ? 1 : 0
-  source            = "../../../../iaac/terraform/aws-infra/cognito-user-pool"
-  user_pool_id = var.user_pool_id
-  aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
-
-  providers = {
-    aws = aws
-    aws.virginia = aws.virginia
-  }
-}
-
-module "ingress_cognito" {
-  count = var.use_cognito ? 1 : 0
-  source            = "../../../../iaac/terraform/common/ingress/cognito-ingress"
-  aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
-  cluster_name = var.addon_context.eks_cluster_id
-  cognito_user_pool_arn = module.cognito[0].user_pool_arn
-  cognito_app_client_id = module.cognito[0].app_client_id
-  cognito_user_pool_domain = module.cognito[0].user_pool_domain
-  load_balancer_scheme = var.load_balancer_scheme
-
-  depends_on = [module.kubeflow_istio, module.cognito]
-}
-
-module "kubeflow_aws_authservice" {
-  count = var.use_cognito ? 1 : 0
-  source            = "../../../../iaac/terraform/common/aws-authservice"
-  helm_config = {
-    chart = "${var.kf_helm_repo_path}/charts/common/aws-authservice" 
-    set = [
-      {
-        name = "LOGOUT_URL"
-        value = module.cognito[0].logout_url
-      }
-    ]
-  }
-  addon_context = var.addon_context
-  depends_on = [module.ingress_cognito]
 }

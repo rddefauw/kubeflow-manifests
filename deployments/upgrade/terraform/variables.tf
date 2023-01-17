@@ -43,11 +43,6 @@ variable "use_s3" {
   default = true
 }
 
-variable "use_cognito" {
-  type = bool
-  default = true
-}
-
 variable "use_efs" {
   type = bool
   default = true
@@ -150,10 +145,4 @@ variable "src_rds_secret_name" {
 variable "src_rds_endpoint" {
   description = "RDS endpoint for production cluster"
   type = string
-}
-
-variable "src_terraform" {
-  description = "Relative path to Terraform module for AWS components"
-  type = string
-  default = "./rds-s3-components"
 }
