@@ -1,10 +1,3 @@
-provider "aws" {
-  alias = "aws"
-}
-
-provider "aws" {
-  alias = "virginia"
-}
 locals {
   katib_chart_vanilla  = "${var.kf_helm_repo_path}/charts/apps/katib/vanilla"
   katib_chart_rds  = "${var.kf_helm_repo_path}/charts/apps/katib/katib-external-db-with-kubeflow"
@@ -363,11 +356,8 @@ module "cognito" {
   user_pool_id = var.user_pool_id
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
   stage = var.stage
+  cognito_user_pool_domain = var.cognito_user_pool_domain
 
-  providers = {
-    aws = aws
-    aws.virginia = aws.virginia
-  }
 }
 
 module "ingress_cognito" {
@@ -384,10 +374,6 @@ module "ingress_cognito" {
 
   depends_on = [module.kubeflow_istio, module.cognito]
 
-  providers = {
-    aws = aws
-    aws.virginia = aws.virginia
-  }
 }
 
 module "kubeflow_aws_authservice" {

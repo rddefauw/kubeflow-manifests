@@ -55,13 +55,6 @@ provider "aws" {
   region = local.region
 }
 
-# Cognito requires a certificate in N.Virginia in order to have a custom domain for a user pool
-# https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-add-custom-domain.html
-provider "aws" {
-  region = "us-east-1"
-  alias = "virginia"
-}
-
 provider "kubernetes" {
   host                   = module.eks_blueprints.eks_cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks_blueprints.eks_cluster_certificate_authority_data)
@@ -247,8 +240,4 @@ module "kubeflow_components" {
   cognito_user_pool_domain = var.cognito_user_pool_domain
 
 
-  providers = {
-    aws = aws
-    aws.virginia = aws.virginia
-  }
 }

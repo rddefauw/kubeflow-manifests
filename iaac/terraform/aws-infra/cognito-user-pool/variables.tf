@@ -13,3 +13,8 @@ variable "stage" {
   type = string
   default = "test"
 }
+
+variable "cognito_user_pool_domain" {
+  description = "Domain of existing user pool"
+  type = string
+}
