@@ -391,3 +391,17 @@ module "kubeflow_aws_authservice" {
   addon_context = var.addon_context
   depends_on = [module.ingress_cognito]
 }
+
+resource "aws_ec2_tag" "private_subnet_cluster_tag" {
+  for_each    = toset(var.private_subnet_ids)
+  resource_id = each.value
+  key         = "kubernetes.io/cluster/${var.addon_context.eks_cluster_id}"
+  value       = "shared"
+}
+
+resource "aws_ec2_tag" "public_subnet_cluster_tag" {
+  for_each    = toset(var.public_subnet_ids)
+  resource_id = each.value
+  key         = "kubernetes.io/cluster/${var.addon_context.eks_cluster_id}"
+  value       = "shared"
+}

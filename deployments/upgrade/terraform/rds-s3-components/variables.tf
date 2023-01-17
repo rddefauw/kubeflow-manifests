@@ -56,7 +56,11 @@ variable "efs_fs_id" {
   description = "EFS file system ID"
 }
 
-variable "subnet_ids" {
+variable "private_subnet_ids" {
+  type        = list(string)
+  description = "Subnet ids of the EKS cluster"
+}
+variable "public_subnet_ids" {
   type        = list(string)
   description = "Subnet ids of the EKS cluster"
 }

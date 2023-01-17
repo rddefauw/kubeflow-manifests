@@ -64,6 +64,8 @@ def get_cluster_private_subnet_ids(eks_client, ec2_client):
             # eksctl generated clusters       
             if "SubnetPrivate" in tags["Value"]:
                 private_subnets.append(subnet)
+            if "-private -" in tags["Value"]:
+                private_subnets.append(subnet)
             # cdk generated clusters
             if "aws-cdk:subnet-type" in tags["Key"]:
                 if "Private" in tags["Value"]:
@@ -91,6 +93,8 @@ def get_cluster_public_subnet_ids(eks_client, ec2_client):
         for tags in subnet["Tags"]:
             # eksctl generated clusters       
             if "SubnetPublic" in tags["Value"]:
+                public_subnets.append(subnet)
+            if "-public-" in tags["Value"]:
                 public_subnets.append(subnet)
             # cdk generated clusters
             if "aws-cdk:subnet-type" in tags["Key"]:

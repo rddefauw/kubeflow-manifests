@@ -217,7 +217,8 @@ module "kubeflow_components" {
   vpc_id     = var.src_vpc_id
   cidr_block = var.src_vpc_cidr
   efs_fs_id = var.src_efs_fs_id
-  subnet_ids = var.publicly_accessible ? var.src_vpc_public_subnets : var.src_vpc_private_subnets
+  private_subnet_ids = var.src_vpc_private_subnets
+  public_subnet_ids = var.src_vpc_public_subnets 
   security_group_id = module.eks_blueprints.cluster_primary_security_group_id
   db_security_group_id = var.src_cluster_sg_id
   mlmdb_name = var.mlmdb_name
