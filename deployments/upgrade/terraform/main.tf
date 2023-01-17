@@ -238,11 +238,14 @@ module "kubeflow_components" {
 
   # cognito
   use_cognito = var.use_cognito
-  aws_route53_root_zone_name = var.aws_route53_root_zone_name
+  stage = var.stage
+  user_pool_id = var.user_pool_id
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
-  create_subdomain = var.create_subdomain
-  cognito_user_pool_name = var.cognito_user_pool_name
   load_balancer_scheme = var.load_balancer_scheme
+  certificate_arn = var.certificate_arn
+  cognito_user_pool_arn = var.cognito_user_pool_arn
+  cognito_user_pool_domain = var.cognito_user_pool_domain
+
 
   providers = {
     aws = aws

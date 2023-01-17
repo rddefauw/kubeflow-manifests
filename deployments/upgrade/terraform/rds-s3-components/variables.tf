@@ -117,3 +117,38 @@ variable "rds_secret_name" {
 variable "rds_endpoint" {
   type = string
 }
+
+variable "stage" {
+  description = "Deployment stage"
+  type = string
+  default = "prod"
+}
+variable "user_pool_id" {
+  description = "Cognito user pool to use"
+  type = string
+}
+variable "aws_route53_subdomain_zone_name" {
+  description = "Subdomain for Route 53"
+  type = string
+}
+variable "use_cognito" {
+  type = bool
+  default = true
+}
+variable "cognito_user_pool_arn" {
+  description = "ARN of existing user pool"
+  type = string
+}
+variable "cognito_user_pool_domain" {
+  description = "Domain of existing user pool"
+  type = string
+}
+variable "load_balancer_scheme" {
+  description = "Load Balancer Scheme"
+  type        = string
+  default = "internet-facing"
+}
+variable "certificate_arn" {
+  description = "ARN of wildcard certificate for subdomain"
+  type = string
+}

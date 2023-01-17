@@ -98,6 +98,8 @@ Execute this step on the Cloud9 or EC2 instance you are using for the production
 
 Next, we need to add information about the production deployment to the new `tfvars` file. 
 
+If you installed with kustomize, make sure you have set all the proper environment variables as you did when you installed the cluster. If you do not have these environment variables set because you installed with Terraform, you can obtain the values by searching for the variables `s3_secret`, `rds_secret`, and `artifact_store` in `terraform.tfstate`.
+
 Go to the directory `deployments/upgrade-baseline` and run:
 
 ```bash
@@ -110,10 +112,20 @@ python get_cluster_variables.py \
     --efs_name $CLAIM_NAME
 ```
 
-Add a new line to the output file `upgrade.tfvars` with the name of the S3 bucket you are using for Velero:
+Add new lines to the output file `upgrade.tfvars` with the name of the S3 bucket you are using for Velero and a deployment stage name:
 
-```
+```bash
 src_velero_bucket_name = "<bucket>"
+stage = "candidate"
+```
+
+If you are using Cognito, also add lines for the user pool and certificate information:
+
+```bash
+user_pool_id = ""
+cognito_user_pool_arn = ""
+cognito_user_pool_domain = ""
+certificate_arn = ""
 ```
 
 Copy the output file `upgrade.tfvars` to the EC2 or Cloud9 instance you are using for the new deployment.

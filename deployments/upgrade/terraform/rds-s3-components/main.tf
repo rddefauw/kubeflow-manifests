@@ -362,6 +362,7 @@ module "cognito" {
   source            = "../../../../iaac/terraform/aws-infra/cognito-user-pool"
   user_pool_id = var.user_pool_id
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
+  stage = var.stage
 
   providers = {
     aws = aws
@@ -374,12 +375,19 @@ module "ingress_cognito" {
   source            = "../../../../iaac/terraform/common/ingress/cognito-ingress"
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
   cluster_name = var.addon_context.eks_cluster_id
-  cognito_user_pool_arn = module.cognito[0].user_pool_arn
+  cognito_user_pool_arn = var.cognito_user_pool_arn
   cognito_app_client_id = module.cognito[0].app_client_id
-  cognito_user_pool_domain = module.cognito[0].user_pool_domain
+  cognito_user_pool_domain = var.cognito_user_pool_domain
   load_balancer_scheme = var.load_balancer_scheme
+  stage = var.stage
+  certificate_arn = var.certificate_arn
 
   depends_on = [module.kubeflow_istio, module.cognito]
+
+  providers = {
+    aws = aws
+    aws.virginia = aws.virginia
+  }
 }
 
 module "kubeflow_aws_authservice" {
