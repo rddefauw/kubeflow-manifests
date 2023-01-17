@@ -6,7 +6,10 @@ weight = 90
 
 Kubeflow does not natively offer an upgrade process. An in-place upgrade often works, but we recommend a blue/green upgrade process that provides a fail-back capability. We will leverage integration with AWS storage and database services to let us deploy a new EKS cluster with Kubeflow and connect it to the external data stores. We will also use an open-source tool to copy certain resources from the production EKS cluster to the new one, and use AWS Backup to snapshot the state of our external data stores.
 
-At this time, the upgrade process is only tested when using the RDS and S3 configuration with EFS and the Terraform deployment option.
+At this time, the upgrade process is only tested using these two configurations:
+
+* RDS and S3 with EFS and the Terraform deployment option
+* Cognito, RDS, and S3 with EFS and the Terraform deployment option
 
 ## Upgrade methodology
 
@@ -216,7 +219,9 @@ Wait until the backup completes.
 
 If you deployed your production cluster without Velero, you will need to install it. We recommend using the [EKS Terraform Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints). 
 
-Clone the latest copy of the GitHub repository on the EC2 or Cloud9 instance you are using for the production cluster. Make sure you have set all the proper environment variables as you did when you installed the cluster. Go to the directory `deployments/upgrade-baseline` and run this script to create a Terraform variables file:
+Clone the latest copy of the GitHub repository on the EC2 or Cloud9 instance you are using for the production cluster. If you installed with kustomize, make sure you have set all the proper environment variables as you did when you installed the cluster. If you do not have these environment variables set because you installed with Terraform, you can obtain the values by searching for the variables `s3_secret`, `rds_secret`, and `artifact_store` in `terraform.tfstate`.
+
+Go to the directory `deployments/upgrade-baseline` and run this script to create a Terraform variables file:
 
 ```bash
 python get_cluster_variables.py \
@@ -228,14 +233,14 @@ python get_cluster_variables.py \
     --efs_name $CLAIM_NAME
 ```
 
-If you do not have Terraform installed, follow the normal [installation process](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli). You will need Teerraform < 1.3.0.
+If you do not have Terraform installed, follow the normal [installation process](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli). You will need Terraform < 1.3.0.
 
 Now deploy the stack.
 
 ```bash
 cd terraform
 terraform init
-terraform deploy -auto-approve
+terraform apply -auto-approve
 ```
 
 ### Multiple upgrades
