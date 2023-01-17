@@ -207,7 +207,7 @@ module "eks_blueprints_outputs" {
 }
 
 module "kubeflow_components" {
-  source = var.src_terraform
+  source = "./rds-s3-components"
 
   kf_helm_repo_path = local.kf_helm_repo_path
   addon_context = module.eks_blueprints_outputs.addon_context

@@ -151,9 +151,3 @@ variable "src_rds_endpoint" {
   description = "RDS endpoint for production cluster"
   type = string
 }
-
-variable "src_terraform" {
-  description = "Relative path to Terraform module for AWS components"
-  type = string
-  default = "./rds-s3-components"
-}
