@@ -213,6 +213,16 @@ Wait until the backup is completed.
 velero backup describe test1 # check for the Phase output
 ```
 
+#### Configure new cluster for knative serving
+
+If you use knative serving, you need to set up the new cluster for model serving.
+
+First, edit the config map `config-domain` in the `knative-serving` namespace. Set the default domain to the subdomain you are using for Kubeflow.
+
+Next, follow the steps in the [Create ingress](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#create-ingress) section to configure the ingress controller. You can reuse the same certificate you used for the production cluster.
+
+Finally, follow the steps in [Run a sample inference service](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#run-a-sample-inferenceservice) to add an authorization policy.
+
 #### Restore resources into new cluster.
 
 Execute this section on the Cloud9 or EC2 instance you are using for the new cluster.
@@ -220,10 +230,16 @@ Execute this section on the Cloud9 or EC2 instance you are using for the new clu
 Restore the backup. You must include all user namespaces and the `velero` namespace.
 
 ```bash
-velero restore create --from-backup test1 --include-namespaces kubeflow-user-example-com,velero --include-cluster-resources --wait
+velero restore create --from-backup test1 \
+    --include-namespaces kubeflow-user-example-com,velero \
+    --include-resources persistentvolume,persistentvolumeclaim,namespace,workflow,image,notebook,profile,inferenceservice,configmap,podvolumebackup \
+    --include-cluster-resources \
+    --wait
 ```
 
-Wait until the backup completes.
+Wait until the restore completes.
+
+If you have serving endpoints deployed, you will need to update the CNAME record that you created in [Add DNS records](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#add-dns-records).
 
 ## Notes
 
@@ -264,3 +280,18 @@ The original production cluster deployment creates the underlying AWS storage re
 You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS, S3, Cognito, Route 53, and any certificates created. You should retain the backup vault as we reuse that. We also use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
 
 If you deployed with Cognito, you will need to make sure that you adjust the `A` record for the subdomain apex to point to the ingress controller for the new cluster.
+
+### Resources in scope for Velero backup
+
+While Velero can back up an entire EKS cluster, we only need a few resource types.
+
+* persistentvolume (global)
+* persistentvolumeclaim (user profile namespace)
+* namespace (only for user profile namespaces)
+* workflow (user profile namespace)
+* image (user profile namespace)
+* notebook (user profile namespace)
+* profile (global)
+* inferenceservice (user profile namespace)
+* configmap (user profile namespace)
+* podvolumebackup (velero namespace)
