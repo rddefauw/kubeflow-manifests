@@ -15,6 +15,10 @@ At this time, the upgrade process is only tested using these two configurations:
 
 Using a blue/green pattern lets us deploy a new EKS cluster with a new version of kubernetes, a new version of Kubeflow, or both. We do need to transfer all relevant state from the old deployment to the new one. Once the new deployment is running, you can test it and then switch traffic if the deployment was successful. We recommend performing the upgrade and associated testing during a maintenance window, as both EKS clusters will be connected to the same underlying data stores.
 
+This diagram shows the components and DNS records involved.
+
+![upgrade-summary](../images/upgrade/kubeflow-upgrade.png)
+
 There are several data stores to consider.
 
 ### AWS data stores
