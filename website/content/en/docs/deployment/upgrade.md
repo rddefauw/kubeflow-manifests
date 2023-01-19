@@ -37,7 +37,7 @@ Now let's walk through a detailed example of a blue/green upgrade.
 
 ### Declare a maintenance window
 
-Some Kubeflow resources, like pipeline runs, take some time to persist into the database. Wait one hour after pausing user activity before starting the upgrade.
+We recommend not allowing end users to access Kubeflow until testing is complete and you are ready to direct traffic to the new cluster. Otherwise, users may be performing activity that will not show up in the new cluster.
 
 ### Install Velero CLI
 
@@ -303,3 +303,13 @@ While Velero can back up an entire EKS cluster, we only need a few resource type
 * inferenceservice (user profile namespace)
 * configmap (user profile namespace)
 * podvolumebackup (velero namespace)
+
+### Occasional run status unknown
+
+Occasionally you may notice that a workflow run shows with an unknown status. If you look at the logs for the pod `ml-pipeline-persistenceagent-YYYY` in the `kubeflow` namespace, you may see messages like this:
+
+```
+time="YYYY-MM-DDTHH:mm:ssZ" level=error msg="Permanent failure while syncing resource (kubeflow-user-example-com/pipeline-id)
+```
+
+These errors prevent the run status from persisting to the database. This error does not appear to be related to the upgrade process, as it can manifest before the new cluster is deployed.
