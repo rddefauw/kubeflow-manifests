@@ -201,6 +201,8 @@ For example, if the user `user@example.com` has a notebook called `mynb`, you wo
 kubectl -n kubeflow-user-example-com annotate pod/mynb-0 backup.velero.io/backup-volumes=mynb-volume
 ```
 
+Note that Velero normally uses the CSI driver's snapshot capability to backup and restore volumes. That works well with EBS. However, EFS and FSx do not support snapshots in the respective CSI drivers. Velero handles EFS and FSx with its file system backups, which use a node agent to copy data out of the EFS or FSx volume into Velero's S3 bucket, and then from that bucket into a new volume. That process may be slow for larger volumes.
+
 #### Back up resources from production cluster
 
 Execute this section on the Cloud9 or EC2 instance you are using for the production cluster.
