@@ -55,6 +55,11 @@ provider "aws" {
   region = local.region
 }
 
+data "aws_route53_zone" "platform" {
+  count = var.use_alb_redirect ? 1 : 0
+  name = var.aws_route53_subdomain_zone_name
+}
+
 provider "kubernetes" {
   host                   = module.eks_blueprints.eks_cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks_blueprints.eks_cluster_certificate_authority_data)
@@ -241,4 +246,16 @@ module "kubeflow_components" {
   cognito_user_pool_domain = var.cognito_user_pool_domain
 
 
+}
+
+module "alb_redirection" {
+  count = var.use_alb_redirect ? 1 : 0
+  source = "../../../iaac/terraform/aws-infra/alb-redirect"
+
+  vpc_id = var.src_vpc_id
+  subnet_ids = var.src_vpc_public_subnets
+  certificate_arn = var.certificate_arn
+  redirect_to = "kubeflow${var.src_stage}.${var.aws_route53_subdomain_zone_name}"
+  redirect_from = "${var.redirect_alias}.${var.aws_route53_subdomain_zone_name}"
+  zone_id         = data.aws_route53_zone.platform[0].zone_id
 }

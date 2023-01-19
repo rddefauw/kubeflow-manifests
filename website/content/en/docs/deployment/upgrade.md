@@ -132,6 +132,12 @@ cognito_user_pool_domain = ""
 certificate_arn = ""
 ```
 
+If you want to use an ALB for redirection to give you a consistent user-facing URL, add:
+
+```bash
+use_alb_redirect = true
+```
+
 Copy the output file `upgrade.tfvars` to the EC2 or Cloud9 instance you are using for the new deployment.
 
 In the directory for the new deployment, copy the `upgrade.tfvars` file into the directory, then run:

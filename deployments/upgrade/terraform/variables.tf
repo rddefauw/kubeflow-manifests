@@ -185,3 +185,18 @@ variable "certificate_arn" {
   type = string
   default = ""
 }
+variable "use_alb_redirect" {
+  description = "Deploy ALB for redirection between clusters"
+  type = bool
+  default = false
+}
+variable "redirect_alias" {
+  description = "DNS alias used for ALB redirection"
+  type = string
+  default = "kflive"
+}
+variable "src_stage" {
+  description = "Deployment stage of production cluster"
+  type = string
+  default = ""
+}
