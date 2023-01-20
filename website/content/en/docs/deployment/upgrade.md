@@ -314,7 +314,9 @@ Wait until the restore completes. You can then connect to your cluster at this U
 
 #### Update DNS records
 
-We use an ALB to provide a redirection point to the active cluster. The ALB rule normally redirects to the production cluster. Once testing is complete, you need to update the listener rule to point to the CNAME record for the new cluster. We cannot use a simple Route 53 alias record as the Cognito redirection URLs have to match the URL in the browser.
+We use an ALB to provide a redirection point to the active cluster. The ALB rule normally redirects to the production cluster. Once testing is complete, you need to update the listener rule to point to the CNAME record for the new cluster. We cannot use a simple Route 53 alias record as the Cognito redirection URLs have to match the URL in the browser. After completing this step, you can access this URL:
+
+    terraform output -raw kubelow_alias
 
 If you have serving endpoints deployed, you will need to update the CNAME record that you created in [Add DNS records](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#add-dns-records). It should now point to the ingress for the new cluster.
 
