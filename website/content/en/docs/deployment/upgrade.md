@@ -27,9 +27,11 @@ The recommended configuration uses S3 for artifact storage, RDS as the database,
 
 We will not back up Cognito as normally you don't need to make changes to identities during an upgrade test cycle.
 
+When using Route 53 for DNS, we will make and adjust CNAME and alias records to provide end users with a consistent endpoint for accessing the Kubeflow dashboard, and to preserve model serving endpoints.
+
 ### Kubernetes resources
 
-During Kubeflow use, users create resources like notebook instances and model serving endpoints. These exist in the user-specific namespaces. We will use [Velero](https://velero.io/), an open-source tool, to backup resources from these namespaces and recover them into the new cluster.
+During Kubeflow use, users create resources like notebook instances and model serving endpoints. These exist in the user-specific namespaces. We will use [Velero](https://velero.io/), an open-source tool, to backup resources from these namespaces and recover them into the new cluster. These resources are usually custom resources, and by copying the custom resources, the resource controllers will create the associated pods and other resources.
 
 ## Upgrade steps
 
@@ -45,9 +47,11 @@ On the EC2 or Cloud9 instance you are using, [install the Velero CLI](https://ve
 
 ### Configure Velero in production cluster
 
-Make sure that you enabled Velero when deploying the production cluster. If not, enable it and redeploy the Terraform stack.
+Make sure that you enabled Velero when deploying the production cluster. If not, enable it by setting the variable `using_velero = true` and redeploy the Terraform stack.
 
-If your production deployment used a version of Kubeflow on AWS that did not include support for deploying Velero with Terraform, see the note about [installing Velero manually)({{< ref "#Installing Velero manually" >}})..
+If your production deployment used a version of Kubeflow on AWS that did not include support for deploying Velero with Terraform, see the note about [installing Velero manually)({{< ref "#Installing Velero manually" >}}).
+
+Note the name of the S3 bucket you use for Velero, as we'll need that later on.
 
 ### Switch to new version of Kubeflow release
 
@@ -65,11 +69,11 @@ Follow the steps in [Clone repository]({{< ref "./prerequisites/#Clone repositor
 
 If you set up a new Cloud9 or EC2 instance, follow the steps in [Install necessary tools]({{< ref "./prerequisites/#Install necessary tools" >}}) and [Configure AWS Credentials and Region for Deployment]({{< ref "./prerequisites/#Configure AWS Credentials and Region for Deployment" >}}). Then [install the Velero CLI](https://velero.io/docs/v1.10/basic-install/#install-the-cli).
 
-### Deploy backup EKS cluster
+### Configure backup EKS cluster
 
-Next, we will create a new `tfvars` file with the name of the backup cluster and necessary information about the original deployment.
+Next, we will create a new `sample.auto.tfvars` file to configure the new deployment. This will consist of three steps - basic deployment information, information about the production deployment, and additional upgrade information.
 
-#### Generate variable file for new cluster
+#### Basic deployment information
 
 Execute this step on the Cloud9 or EC2 instance you are using for the new cluster. 
 
@@ -84,25 +88,58 @@ Copy the `sample.auto.tfvars` file from the production deployment into this dire
 ```bash
 cluster_name="<cluster name>"
 cluster_region="<cluster region>"
-generate_db_password="true"
 use_rds="true"
 use_s3="true"
+use_efs="true"
+```
+
+If you want to use Cognito and Route 53, the file also needs these entries:
+
+```bash
+aws_route53_subdomain_zone_name="<subdomain zone name>"
+use_cognito="true"
+load_balancer_scheme="internet-facing"
 ```
 
 Edit the `sample.auto.tfvars` file and make these changes:
 
 * Set the name of the backup EKS cluster in the `cluster_name` variable. 
-* If you want to use a different version of EKS, set the `eks_version` variable.
+* If you are not intending to use Cognito, set `use_cognito=false`.
 
 The other variables can stay the same.
 
-#### Get information about production cluster
+#### Information about the production deployment
+
+In order to do a blue/green upgrade, we must have the following information about the production cluster.
+
+* src_vpc_private_subnets - VPC private subnets
+* src_vpc_public_subnets - VPC public subnets
+* src_vpc_id - VPC ID
+* src_vpc_cidr - VPC CIDR
+* src_efs_fs_id - EFS file system ID
+* src_cluster_sg_id - Security group used for EKS and RDS
+* src_s3_secret_name - Secret used for S3 credentials
+* src_s3_bucket_name - Artifact bucket
+* src_rds_secret_name - Secret used for RDS credentials
+* src_rds_endpoint - RDS endpoint
+
+If using Cognito, we also need to provide information about the existing Cognito domain and Route 53:
+
+* user_pool_id - Cognito user pool ID
+* cognito_user_pool_arn - Cognito user pool ARN
+* cognito_user_pool_domain - Cognito user pool domain
+* certificate_arn - ARN of the wildcard certificate for the subdomain
+* src_stage - Stage name in the CNAME for the existing deployment (may be empty)
+
+We can obtain most of this information automatically if you deployed the production cluster using manifests or Terraform. You can however always set these variables manually.
+
+#### Production deployment information gathering - manifest deployment
 
 Execute this step on the Cloud9 or EC2 instance you are using for the production cluster. 
 
-Next, we need to add information about the production deployment to the new `tfvars` file. 
+Use this section if you deployed the production cluster with the manifest approach.
 
-If you installed with kustomize, make sure you have set all the proper environment variables as you did when you installed the cluster. If you do not have these environment variables set because you installed with Terraform, you can obtain the values by searching for the variables `s3_secret`, `rds_secret`, and `artifact_store` in `terraform.tfstate`.
+Make sure you have set all the proper environment variables as you did when you installed the cluster. 
 
 Go to the directory `deployments/upgrade-baseline` and run:
 
@@ -116,26 +153,15 @@ python get_cluster_variables.py \
     --efs_name $CLAIM_NAME
 ```
 
-Add new lines to the output file `upgrade.tfvars` with the name of the S3 bucket you are using for Velero and a deployment stage name:
+This produces a file called `upgrade.tfvars`.
 
-```bash
-src_velero_bucket_name = "<bucket>"
-stage = "candidate"
-```
-
-If you are using Cognito, also add lines for the user pool and certificate information:
+If you are using Cognito, also add lines in `upgrade.tfvars` for the user pool and certificate information. In the manifest deployment approach the Cognito setup is done manually, so we cannot obtain this information automatically.
 
 ```bash
 user_pool_id = ""
 cognito_user_pool_arn = ""
 cognito_user_pool_domain = ""
 certificate_arn = ""
-```
-
-If you want to use an ALB for redirection to give you a consistent user-facing URL, add:
-
-```bash
-use_alb_redirect = true
 ```
 
 Copy the output file `upgrade.tfvars` to the EC2 or Cloud9 instance you are using for the new deployment.
@@ -146,7 +172,23 @@ In the directory for the new deployment, copy the `upgrade.tfvars` file into the
 cat upgrade.tfvars >> sample.auto.tfvars
 ```
 
-#### Deploy new cluster
+#### Production deployment information gathering - Terraform deployment
+
+Execute this step on the Cloud9 or EC2 instance you are using for the production cluster. 
+
+If you deployed with Terraform, we can obtain this information from the Terraform state.
+
+#### Additional upgrade information
+
+There are four additional settings you should configure about the new deployment.
+
+* If you want to use a different version of EKS, set the `eks_version` variable.
+* If you do not want to use an ALB to provide URL redirection, or you already have one set up, set `use_alb_redirect=false`.
+* You can set the value of `redirect_alias`. This will be part of the URL provided to end users. The default value is `kflive`, which would yield a redirect URL of `kflive.<subdomain>`.
+* Set the value of `stage`. This will be part of the URL for the new cluster. You could set this to `blue` or `candidate` for example.
+* Set the value of `src_velero_bucket_name` to the bucket you configured for Velero.
+
+### Deploy backup EKS cluster
 
 Execute this step on the Cloud9 or EC2 instance you are using for the new cluster. 
 
