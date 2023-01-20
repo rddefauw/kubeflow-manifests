@@ -26,7 +26,7 @@ resource "aws_security_group" "allow_tls" {
 }
 
 resource "aws_lb" "cluster_redirect" {
-  name_prefix = "kf-redirect"
+  name_prefix = "kfrd-"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.allow_tls.id]
@@ -35,7 +35,7 @@ resource "aws_lb" "cluster_redirect" {
 }
 
 resource "aws_lb_target_group" "empty_tg" {
-  name_prefix     = "redirect-empty-tg"
+  name_prefix     = "empty-"
   port     = 443
   protocol = "HTTPS"
   vpc_id   = var.vpc_id
