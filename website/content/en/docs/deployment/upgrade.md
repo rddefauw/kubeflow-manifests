@@ -200,7 +200,7 @@ cat upgrade.tfvars >> sample.auto.tfvars
 There are four additional settings you should configure about the new deployment.
 
 * If you want to use a different version of EKS, set the `eks_version` variable.
-* If you do not want to use an ALB to provide URL redirection, or you already have one set up, set `use_alb_redirect=false`.
+* If you do not want to use an ALB to provide URL redirection, or you already have one set up, set `use_alb_redirect=false`. Otherwise set `use_alb_redirect=true`.
 * You can set the value of `redirect_alias`. This will be part of the URL provided to end users. The default value is `kflive`, which would yield a redirect URL of `kflive.<subdomain>`.
 * Set the value of `stage`. This will be part of the URL for the new cluster. You could set this to `blue` or `candidate` for example.
 * Set the value of `src_velero_bucket_name` to the bucket you configured for Velero.
@@ -303,12 +303,14 @@ Restore the backup. You must include all user namespaces and the `velero` namesp
 ```bash
 velero restore create --from-backup test1 \
     --include-namespaces kubeflow-user-example-com,velero \
-    --include-resources persistentvolume,persistentvolumeclaim,namespace,workflow,image,notebook,profile,inferenceservice,configmap,podvolumebackup \
+    --include-resources persistentvolume,persistentvolumeclaim,namespace,workflow,image,notebook,profile,inferenceservice,configmap,podvolumebackup,pod,serviceaccount \
     --include-cluster-resources \
     --wait
 ```
 
-Wait until the restore completes.
+Wait until the restore completes. You can then connect to your cluster at this URL:
+
+    terraform output -raw kubelow_platform_domain
 
 #### Update DNS records
 
@@ -370,6 +372,9 @@ While Velero can back up an entire EKS cluster, we only need a few resource type
 * inferenceservice (user profile namespace)
 * configmap (user profile namespace)
 * podvolumebackup (velero namespace)
+* pod (user profile namespace) 
+
+Note that we only need pods as Velero looks for pods with associated podvolumebackup resources when deciding whether to restore a persistent volume.
 
 ### Occasional run status unknown
 

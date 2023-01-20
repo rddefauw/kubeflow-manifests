@@ -3,9 +3,11 @@ SHELL := /bin/bash # Use bash syntax
 deploy: init \
  create-eks-cluster \
  deploy-eks-blueprints-k8s-addons \
- deploy-kubeflow-components
+ deploy-kubeflow-components \
+ deploy-alb-redirect
 
-delete: delete-kubeflow-components \
+delete: delete-alb-redirect \
+ delete-kubeflow-components \
  delete-eks-blueprints-k8s-addons \
  delete-eks-cluster 
 
@@ -23,6 +25,8 @@ deploy-eks-blueprints-k8s-addons:
 deploy-kubeflow-components:
 	terraform apply -target="module.kubeflow_components" -auto-approve
 
+deploy-alb-redirect:
+	terraform apply -target="module.alb_redirection" -auto-approve
 
 delete-eks-cluster:
 	terraform destroy -target="module.eks_blueprints" -auto-approve
@@ -32,6 +36,9 @@ delete-eks-blueprints-k8s-addons:
 
 delete-kubeflow-components:
 	terraform destroy -target="module.kubeflow_components" -auto-approve
+
+delete-alb-redirect:
+	terraform destroy -target="module.alb_redirection" -auto-approve
 
 # don't create executables
 .PHONY: *
