@@ -176,7 +176,24 @@ cat upgrade.tfvars >> sample.auto.tfvars
 
 Execute this step on the Cloud9 or EC2 instance you are using for the production cluster. 
 
-If you deployed with Terraform, we can obtain this information from the Terraform state.
+Use this section if you deployed the production cluster with the Terraform approach.
+
+Go to the directory `deployments/upgrade-baseline` and run:
+
+```bash
+python get_state_variables.py \
+    --statefile <path/to/terraform.tfstate>
+```
+
+This produces a file called `upgrade.tfvars`.
+
+Copy the output file `upgrade.tfvars` to the EC2 or Cloud9 instance you are using for the new deployment.
+
+In the directory for the new deployment, copy the `upgrade.tfvars` file into the directory, then run:
+
+```bash
+cat upgrade.tfvars >> sample.auto.tfvars
+```
 
 #### Additional upgrade information
 
