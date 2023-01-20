@@ -26,7 +26,7 @@ resource "aws_security_group" "allow_tls" {
 }
 
 resource "aws_lb" "cluster_redirect" {
-  name_name_prefix = "kf-redirect"
+  name_prefix = "kf-redirect"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.allow_tls.id]

@@ -26,7 +26,7 @@ def main():
                 if r['type'] == 'aws_cognito_user_pool':
                     VFU.write(f"user_pool_id = \"{r['instances'][0]['attributes']['id']}\"\n")
                     VFU.write(f"cognito_user_pool_arn = \"{r['instances'][0]['attributes']['arn']}\"\n")
-                if r['type'] == 'aws_eks_cluster' and r['module'] == 'module.eks_blueuprints':
+                if r['type'] == 'aws_eks_cluster' and r['module'] == 'module.eks_blueprints':
                     VFU.write(f"src_cluster_sg_id = \"{r['instances'][0]['attributes']['vpc_config'][0]['cluster_security_group_id']}\"\n")
                 if r['type'] == 'aws_acm_certificate' and r['name'] == 'deployment_region':
                     VFU.write(f"certificate_arn = \"{r['instances'][0]['attributes']['arn']}\"\n")
