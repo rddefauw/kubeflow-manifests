@@ -239,3 +239,8 @@ variable "notebook_idleness_check_period" {
   type = string
   default = 5
 }
+
+variable "stage" {
+  description = "Deployment stage"
+  type = string
+}

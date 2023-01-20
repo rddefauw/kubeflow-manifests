@@ -110,6 +110,7 @@ module "cognito" {
   source            = "../../../../iaac/terraform/aws-infra/cognito"
   cognito_user_pool_name = var.cognito_user_pool_name
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
+  stage = var.stage
 
   providers = {
     aws = aws
@@ -187,6 +188,7 @@ module "ingress_cognito" {
   cognito_app_client_id = module.cognito[0].app_client_id
   cognito_user_pool_domain = module.cognito[0].user_pool_domain
   load_balancer_scheme = var.load_balancer_scheme
+  stage = var.stage
 
   depends_on = [module.kubeflow_istio, module.cognito]
 }

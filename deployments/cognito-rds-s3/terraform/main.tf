@@ -261,6 +261,7 @@ module "kubeflow_components" {
 
   # cognito
   use_cognito = var.use_cognito
+  stage = var.stage
   aws_route53_root_zone_name = var.aws_route53_root_zone_name
   aws_route53_subdomain_zone_name = var.aws_route53_subdomain_zone_name
   create_subdomain = var.create_subdomain

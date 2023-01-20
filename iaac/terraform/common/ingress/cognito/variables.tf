@@ -28,3 +28,8 @@ variable "load_balancer_scheme" {
   type        = string
   default = "internet-facing"
 }
+
+variable "stage" {
+    description = "Deployment stage"
+    type = string
+}

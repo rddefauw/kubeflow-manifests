@@ -86,7 +86,7 @@ data "aws_lb" "istio_ingress" {
 resource "aws_route53_record" "cname_record" {
   allow_overwrite = true
   zone_id         = data.aws_route53_zone.platform.zone_id
-  name            = "kubeflow.${data.aws_route53_zone.platform.name}"
+  name            = "kubeflow-${var.stage}.${data.aws_route53_zone.platform.name}"
   type            = "CNAME"
   records         = [data.aws_lb.istio_ingress.dns_name]
   ttl             = "300"
