@@ -47,3 +47,10 @@ output "s3_bucket_name" {
   value       = try(module.kubeflow_components.s3_bucket_name, null)
   description = "The name of the created S3 bucket"
 }
+
+output "kubelow_platform_domain" {
+    value = module.kubeflow_components.kubelow_platform_domain
+}
+output "kubelow_alias" {
+    value = "${var.redirect_alias}.${var.aws_route53_subdomain_zone_name}"
+}
