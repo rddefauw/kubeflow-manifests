@@ -75,14 +75,6 @@ module "eks_blueprints_kubernetes_addons" {
       {
         name = "deployNodeAgent",
         value = "true"
-      },
-      {
-        name = "configuration.defaultVolumesToFsBackup",
-        value = "true"
-      },
-      {
-        name = "snapshotsEnabled",
-        value = "false"
       }
     ]
   }
