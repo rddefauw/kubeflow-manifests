@@ -350,6 +350,21 @@ resource "kubernetes_manifest" "efs_storage_class" {
   }
 }
 
+resource "kubernetes_manifest" "fsx_storage_class" {
+  depends_on = [
+    module.fsx
+  ]
+  count = var.use_fsx ? 1 : 0
+  manifest = {
+    "apiVersion": "storage.k8s.io/v1",
+    "kind": "StorageClass",
+    "metadata": {
+      "name": "fsx-sc"
+    },
+    "provisioner": "fsx.csi.aws.com"
+  }
+}
+
 module "cognito" {
   count = var.use_cognito ? 1 : 0
   source            = "../../../../iaac/terraform/aws-infra/cognito-user-pool"

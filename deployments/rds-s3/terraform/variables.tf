@@ -48,6 +48,11 @@ variable "use_efs" {
   default = true
 }
 
+variable "use_fsx" {
+  type = bool
+  default = true
+}
+
 variable "use_scheduled_backup" {
   type = bool
   default = false

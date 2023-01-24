@@ -210,6 +210,7 @@ module "kubeflow_components" {
   use_rds = var.use_rds
   use_s3 = var.use_s3
   use_efs = var.use_efs
+  use_fsx = var.use_fsx
 
   vpc_id     = var.src_vpc_id
   cidr_block = var.src_vpc_cidr

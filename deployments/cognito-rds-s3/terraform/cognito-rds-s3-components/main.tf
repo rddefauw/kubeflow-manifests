@@ -429,6 +429,14 @@ module "efs" {
   vpc_id = var.vpc_id
 }
 
+module "fsx" {
+  count = var.use_fsx ? 1 : 0
+  source            = "../../../../iaac/terraform/aws-infra/fsx"
+  cluster_subnet_ids = var.subnet_ids[0]
+  cluster_sg = var.security_group_id
+  vpc_id = var.vpc_id
+}
+
 module "backups" {
   source            = "../../../../iaac/terraform/aws-infra/backup"
   use_scheduled_backup = var.use_scheduled_backup
@@ -460,5 +468,20 @@ resource "kubernetes_manifest" "efs_storage_class" {
     "provisioner": "efs.csi.aws.com",
     "reclaimPolicy": "Delete",
     "volumeBindingMode": "WaitForFirstConsumer"
+  }
+}
+
+resource "kubernetes_manifest" "fsx_storage_class" {
+  depends_on = [
+    module.fsx
+  ]
+  count = var.use_fsx ? 1 : 0
+  manifest = {
+    "apiVersion": "storage.k8s.io/v1",
+    "kind": "StorageClass",
+    "metadata": {
+      "name": "fsx-sc"
+    },
+    "provisioner": "fsx.csi.aws.com"
   }
 }

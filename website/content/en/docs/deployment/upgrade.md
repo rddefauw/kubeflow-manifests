@@ -8,8 +8,10 @@ Kubeflow does not natively offer an upgrade process. An in-place upgrade often w
 
 At this time, the upgrade process is only tested using these two configurations:
 
-* RDS and S3 with EFS and the Terraform deployment option
-* Cognito, RDS, and S3 with EFS and the Terraform deployment option
+* RDS and S3 and the Terraform deployment option
+* Cognito, RDS, and S3 and the Terraform deployment option
+
+We recommend using EFS or FSx for volume storage, but EBS volumes are supported as well.
 
 ## Upgrade methodology
 
@@ -23,7 +25,7 @@ There are several data stores to consider.
 
 ### AWS data stores
 
-The recommended configuration uses S3 for artifact storage, RDS as the database, EFS for volume storage, and Cognito as an identity provider. We will use AWS Backup to take a snapshot of S3, RDS, and EFS, so that we can restore them to a known-good state if something goes wrong with the new deployment.
+The recommended configuration uses S3 for artifact storage, RDS as the database, EFS or FSx for volume storage, and Cognito as an identity provider. We will use AWS Backup to take a snapshot of S3, RDS, and EFS, so that we can restore them to a known-good state if something goes wrong with the new deployment.
 
 We will not back up Cognito as normally you don't need to make changes to identities during an upgrade test cycle.
 
@@ -90,7 +92,8 @@ cluster_name="<cluster name>"
 cluster_region="<cluster region>"
 use_rds="true"
 use_s3="true"
-use_efs="true"
+use_efs="<EFS enabled?>"
+use_fsx="<FSx enabled?>"
 ```
 
 If you want to use Cognito and Route 53, the file also needs these entries:
@@ -248,7 +251,7 @@ Execute this section on the Cloud9 or EC2 instance you are using for the product
 
 Persistent volumes for notebooks are cluster-level resources, although the volume claims are in the user-level namespaces. However, the Velero custom resources that represent volume backups live in the `velero` namespace. We do not want to restore the entire `velero` namespace later, as that would include volumes from Velero pods.
 
-So, we will annotate the volumes we want to back up. For each persistent volume, run this command:
+So, we will annotate the volumes we want to back up. For each persistent volume that uses EFS or FSx, run this command:
 
 ```bash
 kubectl -n <namespace> annotate pod/<pod name> backup.velero.io/backup-volumes=<volume name>
@@ -352,11 +355,11 @@ terraform apply -auto-approve
 
 ### Multiple upgrades
 
-The original production cluster deployment creates the underlying AWS storage resources in S3, RDS, and EFS. Future deployments read information about those resources from the Terraform state of the original deployment. You can continue to follow the upgrade process in the future to deploy new versions of Kubeflow and/or EKS. Just remember to use the correct kubectl contexts when executing the Velero backups.
+The original production cluster deployment creates the underlying AWS storage resources in S3, RDS, and EFS (or FSx). Future deployments read information about those resources from the Terraform state of the original deployment. You can continue to follow the upgrade process in the future to deploy new versions of Kubeflow and/or EKS. Just remember to use the correct kubectl contexts when executing the Velero backups.
 
 ### Deleting old clusters
 
-You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS, S3, Cognito, Route 53, and any certificates created. You should retain the backup vault as we reuse that. We also use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
+You can remove older deployments when satisfied with testing. Specifically, you can delete the EKS cluster used for an older deployment, as the upgrade process only needs information about the VPC, RDS, EFS or FSx, S3, Cognito, Route 53, and any certificates created. You should retain the backup vault as we reuse that. We also use the original EKS cluster security group for the RDS database as well, so you will need to retain that security group.
 
 If you deployed with Cognito, you will need to make sure that you adjust the `A` record for the subdomain apex to point to the ingress controller for the new cluster.
 

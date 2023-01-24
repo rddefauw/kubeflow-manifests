@@ -53,6 +53,11 @@ variable "use_efs" {
   default = true
 }
 
+variable "use_fsx" {
+  type = bool
+  default = true
+}
+
 variable "enable_aws_telemetry" {
   description = "Enable AWS telemetry component"
   type = bool

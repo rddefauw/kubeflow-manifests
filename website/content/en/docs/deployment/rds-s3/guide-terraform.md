@@ -61,6 +61,8 @@ pwd
     export USE_S3="true"
     # true/false flag to configure and deploy with EFS
     export USE_EFS="true"
+    # true/false flag to configure and deploy with FSx
+    export USE_FSX="true"
     # true/false flag to configure and deploy with Velero
     export USE_VELERO="true"
     ```
@@ -77,6 +79,7 @@ pwd
     use_rds="${USE_RDS}"
     use_s3="${USE_S3}"
     use_efs="${USE_EFS}"
+    use_fsx="${USE_FSX}"
     using_velero = "${USE_VELERO}"
 
     # The below values are set to make cleanup easier but are not recommended for production
@@ -116,6 +119,10 @@ For information on connecting to your Kubeflow dashboard depending on your deplo
 ## Check EFS configuration
 
 If you are using EFS, check the additional information starting in [Section 3 of the EFS add-on guide]({{< ref "../../add-ons/storage/efs/guide/#3.0 Using EFS storage in Kubeflow" >}}).
+
+## Check FSx configuration
+
+If you are using FSx, check the additional information starting in [Section 3 of the FSx add-on guide]({{< ref "../../storage/fsx-for-lustre/guide/#30-using-fsx-storage-in-kubeflow" >}}).
 
 ## Cleanup
 
