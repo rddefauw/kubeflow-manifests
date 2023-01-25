@@ -18,6 +18,7 @@ resource "aws_security_group_rule" "kubeflow_fsx_sg_ingress" {
   to_port           = 988
   protocol          = "tcp"
   source_security_group_id = var.cluster_sg
+  security_group_id = aws_security_group.kubeflow_fsx_sg.id
 }
 resource "aws_security_group_rule" "kubeflow_fsx_sg_ingress_self" {
   type              = "ingress"
@@ -25,4 +26,5 @@ resource "aws_security_group_rule" "kubeflow_fsx_sg_ingress_self" {
   to_port           = 988
   protocol          = "tcp"
   self = true
+  security_group_id = aws_security_group.kubeflow_fsx_sg.id
 }
