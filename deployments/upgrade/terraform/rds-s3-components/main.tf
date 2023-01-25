@@ -351,9 +351,6 @@ resource "kubernetes_manifest" "efs_storage_class" {
 }
 
 resource "kubernetes_manifest" "fsx_storage_class" {
-  depends_on = [
-    module.fsx
-  ]
   count = var.use_fsx ? 1 : 0
   manifest = {
     "apiVersion": "storage.k8s.io/v1",

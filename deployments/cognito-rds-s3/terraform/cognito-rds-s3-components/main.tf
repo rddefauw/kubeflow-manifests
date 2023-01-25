@@ -432,7 +432,7 @@ module "efs" {
 module "fsx" {
   count = var.use_fsx ? 1 : 0
   source            = "../../../../iaac/terraform/aws-infra/fsx"
-  cluster_subnet_ids = var.subnet_ids[0]
+  cluster_subnet_id = var.subnet_ids[0]
   cluster_sg = var.security_group_id
   vpc_id = var.vpc_id
 }
