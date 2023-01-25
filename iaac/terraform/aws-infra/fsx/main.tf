@@ -1,5 +1,4 @@
 resource "aws_fsx_lustre_file_system" "eks_fsx_fs" {
-  import_path      = "s3://${aws_s3_bucket.example.bucket}"
   storage_capacity = 1200
   subnet_ids       = [var.cluster_subnet_id]
   deployment_type = "SCRATCH_2"
