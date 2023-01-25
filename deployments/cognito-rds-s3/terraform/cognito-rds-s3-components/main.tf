@@ -445,7 +445,7 @@ module "backups" {
 
 resource "kubernetes_manifest" "efs_storage_class" {
   depends_on = [
-    module.efs
+    module.efs,kubernetes_namespace.kubeflow
   ]
   count = var.use_efs ? 1 : 0
   manifest = {
@@ -473,7 +473,7 @@ resource "kubernetes_manifest" "efs_storage_class" {
 
 resource "kubernetes_manifest" "fsx_storage_class" {
   depends_on = [
-    module.fsx
+    module.fsx,kubernetes_namespace.kubeflow
   ]
   count = var.use_fsx ? 1 : 0
   manifest = {

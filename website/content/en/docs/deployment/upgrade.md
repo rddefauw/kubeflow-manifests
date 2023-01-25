@@ -306,7 +306,7 @@ Restore the backup. You must include all user namespaces and the `velero` namesp
 ```bash
 velero restore create --from-backup test1 \
     --include-namespaces kubeflow-user-example-com,velero \
-    --include-resources persistentvolume,persistentvolumeclaim,namespace,workflow,image,notebook,profile,inferenceservice,configmap,podvolumebackup,pod,serviceaccount \
+    --include-resources persistentvolume,persistentvolumeclaim,namespace,image,notebook,profile,inferenceservice,configmap,podvolumebackup,pod,serviceaccount \
     --include-cluster-resources \
     --wait
 ```
@@ -370,7 +370,6 @@ While Velero can back up an entire EKS cluster, we only need a few resource type
 * persistentvolume (global)
 * persistentvolumeclaim (user profile namespace)
 * namespace (only for user profile namespaces)
-* workflow (user profile namespace)
 * image (user profile namespace)
 * notebook (user profile namespace)
 * profile (global)
