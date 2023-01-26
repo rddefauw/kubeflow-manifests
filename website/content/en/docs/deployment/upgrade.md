@@ -200,7 +200,7 @@ cat upgrade.tfvars >> sample.auto.tfvars
 
 #### Additional upgrade information
 
-There are four additional settings you should configure about the new deployment.
+There are five additional settings you should configure about the new deployment.
 
 * If you want to use a different version of EKS, set the `eks_version` variable.
 * If you do not want to use an ALB to provide URL redirection, or you already have one set up, set `use_alb_redirect=false`. Otherwise set `use_alb_redirect=true`.
