@@ -385,13 +385,3 @@ While Velero can back up an entire EKS cluster, we only need a few resource type
 * pod (user profile namespace) 
 
 Note that we only need pods as Velero looks for pods with associated podvolumebackup resources when deciding whether to restore a persistent volume.
-
-### Occasional run status unknown
-
-Occasionally you may notice that a workflow run shows with an unknown status. If you look at the logs for the pod `ml-pipeline-persistenceagent-YYYY` in the `kubeflow` namespace, you may see messages like this:
-
-```
-time="YYYY-MM-DDTHH:mm:ssZ" level=error msg="Permanent failure while syncing resource (kubeflow-user-example-com/pipeline-id)
-```
-
-These errors prevent the run status from persisting to the database. This error does not appear to be related to the upgrade process, as it can manifest before the new cluster is deployed.
