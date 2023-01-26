@@ -297,6 +297,10 @@ Next, follow the steps in the [Create ingress](https://awslabs.github.io/kubeflo
 
 Finally, follow the steps in [Run a sample inference service](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#run-a-sample-inferenceservice) to add an authorization policy.
 
+#### Provision persistent volumes for FSx
+
+Velero does not support restoring persistent volumes created with static provisioning, which we use for FSx. If you use FSx volumes, recreate the persistent volumes manually. Velero will bind the persistent volume claim automatically.
+
 #### Restore resources into new cluster.
 
 Execute this section on the Cloud9 or EC2 instance you are using for the new cluster.
