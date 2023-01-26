@@ -301,6 +301,8 @@ Finally, follow the steps in [Run a sample inference service](https://awslabs.gi
 
 Velero does not support restoring persistent volumes created with static provisioning, which we use for FSx. If you use FSx volumes, recreate the persistent volumes manually. Velero will bind the persistent volume claim automatically.
 
+Remember to set the permissions for FSx volumes as described [here](https://awslabs.github.io/kubeflow-manifests/docs/add-ons/storage/fsx-for-lustre/guide/#32-note-about-permissions).
+
 #### Restore resources into new cluster.
 
 Execute this section on the Cloud9 or EC2 instance you are using for the new cluster.
