@@ -207,6 +207,7 @@ There are five additional settings you should configure about the new deployment
 * You can set the value of `redirect_alias`. This will be part of the URL provided to end users. The default value is `kflive`, which would yield a redirect URL of `kflive.<subdomain>`.
 * Set the value of `stage`. This will be part of the URL for the new cluster. You could set this to `blue` or `candidate` for example.
 * Set the value of `src_velero_bucket_name` to the bucket you configured for Velero.
+* If you are using CloudWatch, you can set the variable `cw_log_group_name` to use the same log group as the original cluster, or use a unique name.
 
 ### Deploy backup EKS cluster
 

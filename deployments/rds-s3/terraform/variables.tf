@@ -206,3 +206,17 @@ variable "notebook_idleness_check_period" {
   type = string
   default = 5
 }
+
+variable "use_cloudwatch" {
+  type = bool
+  default = false
+}
+variable "use_fluentbit" {
+  type = bool
+  default = false
+}
+
+variable "cw_log_group_name" {
+  type = string
+  default = "kubeflow"
+}

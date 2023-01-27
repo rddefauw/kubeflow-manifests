@@ -13,7 +13,8 @@ This guide will walk you through using Terraform to:
 - Create an EKS cluster
 - Create a S3 bucket
 - Create an RDS DB instance
-- Create an EFS file system
+- Create an EFS or FSx file system
+- Configure CloudWatch for metrics and logs
 - Deploy Kubeflow with RDS as a KFP and Katib persistence layer, S3 as an artifact store, EFS for persistent volumes, and Velero for supporting backups and upgrades
 
 Terraform documentation can be found [here](https://www.terraform.io/docs).
@@ -65,6 +66,12 @@ pwd
     export USE_FSX="true"
     # true/false flag to configure and deploy with Velero
     export USE_VELERO="true"
+    # true/false flag to configure and deploy with CloudWatch
+    export USE_CLOUDWATCH="true"
+    # true/false flag to configure and deploy with FluentBit
+    export USE_FLUENTBIT="true"
+    # name of CloudWatch log group to use
+    export CW_LOG_GROUP="kubeflow"
     ```
 
     We strongly suggest enabling both EFS and Velero, as that will make for an easier [upgrade]({{< ref "../upgrade" >}}). path.
@@ -81,6 +88,9 @@ pwd
     use_efs="${USE_EFS}"
     use_fsx="${USE_FSX}"
     using_velero = "${USE_VELERO}"
+    use_cloudwatch="${USE_CLOUDWATCH}"
+    use_fluentbit="${USE_FLUENTBIT}"
+    cw_log_group_name="${CW_LOG_GROUP}"
 
     # The below values are set to make cleanup easier but are not recommended for production
     deletion_protection="false"

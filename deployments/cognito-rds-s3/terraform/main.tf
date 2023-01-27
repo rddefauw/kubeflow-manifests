@@ -158,6 +158,11 @@ module "eks_blueprints_kubernetes_addons" {
   enable_aws_efs_csi_driver = true
   enable_aws_fsx_csi_driver = true
 
+  enable_aws_cloudwatch_metrics = var.use_cloudwatch
+  enable_aws_for_fluentbit = var.use_fluentbit
+  aws_for_fluentbit_create_cw_log_group = false
+  aws_for_fluentbit_cw_log_group_name = var.cw_log_group_name
+
   enable_nvidia_device_plugin = local.using_gpu
   enable_velero = var.using_velero
   velero_backup_s3_bucket = var.using_velero ? module.s3[0].s3_bucket_name : ""

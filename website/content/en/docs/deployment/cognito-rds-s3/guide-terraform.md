@@ -15,6 +15,8 @@ This guide will walk you through using Terraform to:
 - Create a Cognito user pool
 - Create a S3 bucket
 - Create an RDS DB instance
+- Create an EFS or FSx file system
+- Configure CloudWatch for metrics and logs
 - Deploy Kubeflow with Cognito as an identity provider, RDS as a KFP and Katib persistence layer, and S3 as an artifact store
 
 Find additional information on [using Cognito with the AWS Distribution for Kubeflow]({{< ref "./guide/#background" >}}) in this guide. You can also check [Terraform documentation](https://www.terraform.io/docs).
@@ -77,6 +79,18 @@ pwd
     export USE_COGNITO="true"
     # Load Balancer Scheme
     export LOAD_BALANCER_SCHEME=internet-facing
+    # true/false flag to configure and deploy with EFS
+    export USE_EFS="true"
+    # true/false flag to configure and deploy with FSx
+    export USE_FSX="true"
+    # true/false flag to configure and deploy with Velero
+    export USE_VELERO="true"
+    # true/false flag to configure and deploy with CloudWatch
+    export USE_CLOUDWATCH="true"
+    # true/false flag to configure and deploy with FluentBit
+    export USE_FLUENTBIT="true"
+    # name of CloudWatch log group to use
+    export CW_LOG_GROUP="kubeflow"
     ```
 
     > NOTE: Configure Load Balancer Scheme (e.g. `internet-facing` or `internal`). Default is set to `internet-facing`. Use `internal` as the load balancer scheme if you want the load balancer to be accessible only within your VPC. See [Load balancer scheme](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html#load-balancer-scheme) in the AWS documentation
@@ -94,6 +108,12 @@ pwd
     use_s3="${USE_S3}"
     use_cognito="${USE_COGNITO}"
     load_balancer_scheme="${LOAD_BALANCER_SCHEME}"
+    use_efs="${USE_EFS}"
+    use_fsx="${USE_FSX}"
+    using_velero = "${USE_VELERO}"
+    use_cloudwatch="${USE_CLOUDWATCH}"
+    use_fluentbit="${USE_FLUENTBIT}"
+    cw_log_group_name="${CW_LOG_GROUP}"
 
     # The below values are set to make cleanup easier but are not recommended for production
     deletion_protection="false"

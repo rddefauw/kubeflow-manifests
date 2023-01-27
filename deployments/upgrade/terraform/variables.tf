@@ -205,3 +205,17 @@ variable "src_stage" {
   type = string
   default = ""
 }
+
+variable "use_cloudwatch" {
+  type = bool
+  default = false
+}
+variable "use_fluentbit" {
+  type = bool
+  default = false
+}
+
+variable "cw_log_group_name" {
+  type = string
+  default = "kubeflow"
+}
