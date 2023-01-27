@@ -321,6 +321,41 @@ Wait until the restore completes. You can then connect to your cluster at this U
 
     terraform output -raw kubelow_platform_domain
 
+#### Transfer ACK resources (optional)
+
+The SageMaker Operators for Kubernetes (ACK) let you provision SageMaker resources like training jobs and inference endpoints. If you create an inference endpoint, for example, you'll have two related resources:
+
+* A SageMaker inference endpoint 
+* An ACK custom resource of type `endpoints.sagemaker.services.k8s.aws` in the EKS cluster
+
+The ACK custom resource manages the inference endpoint by default. Creating the custom resource creates the endpoint. If you delete the ACK custom resource, it will delete the inference endpoint in SageMaker. 
+
+During a blue/green upgrade, we do not want to have the SageMaker inference endpoint deleted when the original cluster is removed. Similarly, we do not want to create a duplicate inference endpoint when we restore the custom resource into the new cluster.
+
+For that reason, we will not use Velero to transfer ACK resources. Instead, we will follow a two-step process:
+
+* Prevent the ACK custom resources in the original cluster from deleting the SageMaker resources. How we do this depends on which version of ACK you're using.
+    * If you are using ACK runtime > 0.22.1, we annotate the ACK resources with a `deletionPolicy=retain` annotation. See the [ACK documentation](https://aws-controllers-k8s.github.io/community/docs/user-docs/deletion-policy/) for more details.
+    * If you are using ACK runtime < 0.22.1, we will remove the `finalizer` from the custom resource.
+* Use the [adopted resource](https://aws-controllers-k8s.github.io/community/docs/user-docs/adopted-resource/) pattern in the new cluster to establish the ACK custom resource tied to the existing SageMaker resource.
+
+On the EC2 or Cloud9 instance you are using to manage the original cluster, go into the `deployments/upgrade` directory. Run this script:
+
+    python ack_helper.py [--annotations | --no-annotations ]
+
+Use the `--annotations` flag if you can use the ACK annotation method. Otherwise use the `--no-annotations` flag.
+
+The script iterates through all `endpoint` ACK custom resources. For each one, it creates two records.
+
+* An entry in the file `add-annotations.sh` to annotate the custom resource, or an entry in the file `remove-finalizers.sh` to remove the finalizers. 
+* A new custom resource YAML manifest called `<endpoint name>-adopted.yaml` to establish an `adopted resource` flavor of the custom resource on the new cluster.
+
+You can run the shell script against the original cluster anytime before removing the ACK resources or the entire original cluster. 
+
+If you want to have ACK resources in the new cluster that reflect the deployed SageMaker inference endpoints, you can apply the `*-adopted.yaml` manifests against the new cluster.
+
+Although the script only handles SageMaker inference endpoint resources, you can easily extend this pattern for other ACK resources like SageMaker endpoint configurations.
+
 #### Update DNS records
 
 We use an ALB to provide a redirection point to the active cluster. The ALB rule normally redirects to the production cluster. Once testing is complete, you need to update the listener rule to point to the CNAME record for the new cluster. We cannot use a simple Route 53 alias record as the Cognito redirection URLs have to match the URL in the browser. After completing this step, you can access this URL:
