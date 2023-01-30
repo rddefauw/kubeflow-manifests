@@ -304,6 +304,29 @@ Velero does not support restoring persistent volumes created with static provisi
 
 Remember to set the permissions for FSx volumes as described [here](https://awslabs.github.io/kubeflow-manifests/docs/add-ons/storage/fsx-for-lustre/guide/#32-note-about-permissions).
 
+#### Set up profile controller service role
+
+If you use IRSA with Kubeflow profiles, create the profile controller IRSA on the new cluster. Use the same policy name as you used in the production cluster.
+
+    eksctl create iamserviceaccount \
+        --cluster=$CLUSTER_NAME \
+        --name="profiles-controller-service-account" \
+        --namespace=kubeflow \
+        --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${PROFILE_CONTROLLER_POLICY_NAME}" \
+        --region=$CLUSTER_REGION \
+        --override-existing-serviceaccounts \
+        --approve
+
+Next, you need to add the new cluster's OIDC URL to the trust policy for any IRSA roles. Run this command to get that URL:
+
+    export OIDC_URL=$(aws eks describe-cluster --region $CLUSTER_REGION --name $CLUSTER_NAME  --query "cluster.identity.oidc.issuer" --output text | cut -c9-)
+
+Now on the Cloud9 or EC2 instance you use for the production cluster, go to the `deployments/upgrade` directory and run:
+
+    python irsa_trust.py --oidc_url <OIDL URL for new cluster> --account_id <AWS account ID>
+
+These script updates the trust policy so the role can be used with the new cluster.
+
 #### Restore resources into new cluster.
 
 Execute this section on the Cloud9 or EC2 instance you are using for the new cluster.
@@ -421,3 +444,7 @@ While Velero can back up an entire EKS cluster, we only need a few resource type
 * pod (user profile namespace) 
 
 Note that we only need pods as Velero looks for pods with associated podvolumebackup resources when deciding whether to restore a persistent volume.
+
+### Pod logs
+
+Pod logs are only preserved if you use Container Insights to archive logs to CloudWatch. 
