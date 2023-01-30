@@ -304,20 +304,11 @@ Velero does not support restoring persistent volumes created with static provisi
 
 Remember to set the permissions for FSx volumes as described [here](https://awslabs.github.io/kubeflow-manifests/docs/add-ons/storage/fsx-for-lustre/guide/#32-note-about-permissions).
 
-#### Set up profile controller service role
+#### Modify trust policies on service roles
 
-If you use IRSA with Kubeflow profiles, create the profile controller IRSA on the new cluster. Use the same policy name as you used in the production cluster.
+If you use IRSA with Kubeflow profiles, you need to adjust the trust policies so they can be used by the new cluster.
 
-    eksctl create iamserviceaccount \
-        --cluster=$CLUSTER_NAME \
-        --name="profiles-controller-service-account" \
-        --namespace=kubeflow \
-        --attach-policy-arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${PROFILE_CONTROLLER_POLICY_NAME}" \
-        --region=$CLUSTER_REGION \
-        --override-existing-serviceaccounts \
-        --approve
-
-Next, you need to add the new cluster's OIDC URL to the trust policy for any IRSA roles. Run this command to get that URL:
+Run this command to get the OIDC URL for the new cluster:
 
     export OIDC_URL=$(aws eks describe-cluster --region $CLUSTER_REGION --name $CLUSTER_NAME  --query "cluster.identity.oidc.issuer" --output text | cut -c9-)
 
