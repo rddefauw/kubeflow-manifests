@@ -370,7 +370,6 @@ module "efs" {
 module "fsx" {
   count = var.use_fsx ? 1 : 0
   source            = "../../../../iaac/terraform/aws-infra/fsx"
-  cluster_subnet_id = var.subnet_ids[0]
   cluster_sg = var.security_group_id
   vpc_id = var.vpc_id
 }
@@ -420,6 +419,11 @@ resource "kubernetes_manifest" "fsx_storage_class" {
     "metadata": {
       "name": "fsx-sc"
     },
-    "provisioner": "fsx.csi.aws.com"
+    "provisioner": "fsx.csi.aws.com",
+    "parameters": {
+      "subnetId": var.subnet_ids[0],
+      "securityGroupIds": module.fsx.fsx_sg_id,
+      "subnetId": "SCRATCH_2"
+    }
   }
 }

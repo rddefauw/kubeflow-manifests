@@ -1,10 +1,3 @@
-resource "aws_fsx_lustre_file_system" "eks_fsx_fs" {
-  storage_capacity = 1200
-  subnet_ids       = [var.cluster_subnet_id]
-  deployment_type = "SCRATCH_2"
-  security_group_ids = [aws_security_group.kubeflow_fsx_sg.id]
-}
-
 resource "aws_security_group" "kubeflow_fsx_sg" {
   name_prefix = "kubeflow_fsx_sg"
   description = "Kubeflow FSx security group"
