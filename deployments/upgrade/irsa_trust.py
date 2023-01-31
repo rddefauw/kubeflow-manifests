@@ -10,22 +10,17 @@ parser.add_argument('--oidc_url', help="OIDC URL for new cluster", required=True
 parser.add_argument('--account_id', help="AWS Account ID", required=True)
 
 args, _ = parser.parse_known_args()
-
-profiles_json = subprocess.run(["kubectl", "get", "profile", "-ojson"], capture_output=True, text=True)
-profiles = json.loads(profiles_json.stdout)
-
 roles_updated = []
-for p in profiles['items']:
-    profile_name = p['metadata']['name']
-    print(f"Working on profile {profile_name}")
 
-    sa_json = subprocess.run(["kubectl", "get", "serviceaccount", "-n", profile_name, "-ojson"], capture_output=True, text=True)
+def process_sa_in_namespace(ns):
+
+    sa_json = subprocess.run(["kubectl", "get", "serviceaccount", "-n", ns, "-ojson"], capture_output=True, text=True)
     svcAccts = json.loads(sa_json.stdout)
     for s in svcAccts['items']:
         sa_name = s['metadata']['name']
         print(f"Working on SA {sa_name}")
 
-        sad_json = subprocess.run(["kubectl", "get", "serviceaccount", sa_name, "-n", profile_name, "-ojson"], capture_output=True, text=True)
+        sad_json = subprocess.run(["kubectl", "get", "serviceaccount", sa_name, "-n", ns, "-ojson"], capture_output=True, text=True)
         svcAcctDetails = json.loads(sad_json.stdout)
         svcAcctMeta = svcAcctDetails['metadata']
         if 'annotations' in svcAcctMeta:
@@ -60,3 +55,12 @@ for p in profiles['items']:
                         PolicyDocument=json.dumps(trust_doc)
                     )
                     roles_updated.append(roleName)
+
+profiles_json = subprocess.run(["kubectl", "get", "profile", "-ojson"], capture_output=True, text=True)
+profiles = json.loads(profiles_json.stdout)
+
+for p in profiles['items']:
+    profile_name = p['metadata']['name']
+    print(f"Working on profile {profile_name}")
+    process_sa_in_namespace(profile_name)
+process_sa_in_namespace('velero')
