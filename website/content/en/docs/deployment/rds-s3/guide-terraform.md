@@ -72,6 +72,8 @@ pwd
     export USE_FLUENTBIT="true"
     # name of CloudWatch log group to use
     export CW_LOG_GROUP="kubeflow"
+    # use Prometheus
+    export USE_PROMETHEUS="false"
     ```
 
     We strongly suggest enabling both EFS and Velero, as that will make for an easier [upgrade]({{< ref "../upgrade" >}}). path.
@@ -91,6 +93,7 @@ pwd
     use_cloudwatch="${USE_CLOUDWATCH}"
     use_fluentbit="${USE_FLUENTBIT}"
     cw_log_group_name="${CW_LOG_GROUP}"
+    use_prometheus="${USE_PROMETHEUS}"
 
     # The below values are set to make cleanup easier but are not recommended for production
     deletion_protection="false"

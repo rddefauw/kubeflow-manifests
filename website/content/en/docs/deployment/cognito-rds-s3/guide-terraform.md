@@ -91,6 +91,8 @@ pwd
     export USE_FLUENTBIT="true"
     # name of CloudWatch log group to use
     export CW_LOG_GROUP="kubeflow"
+    # use Prometheus
+    export USE_PROMETHEUS="false"
     ```
 
     > NOTE: Configure Load Balancer Scheme (e.g. `internet-facing` or `internal`). Default is set to `internet-facing`. Use `internal` as the load balancer scheme if you want the load balancer to be accessible only within your VPC. See [Load balancer scheme](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html#load-balancer-scheme) in the AWS documentation
@@ -114,6 +116,7 @@ pwd
     use_cloudwatch="${USE_CLOUDWATCH}"
     use_fluentbit="${USE_FLUENTBIT}"
     cw_log_group_name="${CW_LOG_GROUP}"
+    use_prometheus="${USE_PROMETHEUS}"
 
     # The below values are set to make cleanup easier but are not recommended for production
     deletion_protection="false"

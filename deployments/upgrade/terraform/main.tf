@@ -124,6 +124,12 @@ module "eks_blueprints" {
   tags = local.tags
 }
 
+module "amp" {
+  count = var.use_prometheus ? 1 : 0
+  source            = "../../../iaac/terraform/aws-infra/prometheus"
+  stage = var.stage
+}
+
 module "eks_blueprints_kubernetes_addons" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.12.1"
 
@@ -148,6 +154,10 @@ module "eks_blueprints_kubernetes_addons" {
   enable_aws_for_fluentbit = var.use_fluentbit
   aws_for_fluentbit_create_cw_log_group = false
   aws_for_fluentbit_cw_log_group_name = var.cw_log_group_name
+
+  enable_amazon_prometheus = var.use_prometheus
+  amazon_prometheus_workspace_endpoint = module.amp[0].prometheus_ws_prometheus_endpoint
+  amazon_prometheus_workspace_region = local.region
 
   enable_nvidia_device_plugin = local.using_gpu
   enable_velero = var.using_velero

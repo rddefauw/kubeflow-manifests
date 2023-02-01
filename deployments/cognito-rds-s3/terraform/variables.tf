@@ -258,6 +258,10 @@ variable "use_fluentbit" {
   type = bool
   default = false
 }
+variable "use_prometheus" {
+  type = bool
+  default = false
+}
 
 variable "cw_log_group_name" {
   type = string
