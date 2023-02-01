@@ -170,6 +170,7 @@ module "eks_blueprints_kubernetes_addons" {
   aws_for_fluentbit_create_cw_log_group = false
   aws_for_fluentbit_cw_log_group_name = var.cw_log_group_name
 
+  enable_prometheus = var.use_prometheus
   enable_amazon_prometheus = var.use_prometheus
   amazon_prometheus_workspace_endpoint = var.use_prometheus ? module.amp[0].prometheus_ws_prometheus_endpoint : ""
   amazon_prometheus_workspace_region = local.region
