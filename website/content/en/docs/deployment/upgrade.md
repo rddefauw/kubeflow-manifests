@@ -302,6 +302,36 @@ Finally, follow the steps in [Run a sample inference service](https://awslabs.gi
 
 Set the permissions for FSx volumes as described [here](https://awslabs.github.io/kubeflow-manifests/docs/add-ons/storage/fsx-for-lustre/guide/#32-note-about-permissions).
 
+#### Configure Prometheus
+
+The Terraform deployment creates the AMP cluster and configures EKS to publish metrics there. We can set up additional scraping to send Kubeflow metrics to AMP as well.
+
+Run:
+
+   kubectl patch deployment notebook-controller-deployment -n kubeflow \
+      --patch-file deployments/add-ons/prometheus-config/notebook-controller-deployment-patch.yaml
+   kubectl patch service notebook-controller-service -n kubeflow \
+      --patch-file deployments/add-ons/prometheus-config/notebook-controller-service-patch.yaml
+
+Now edit the config map `prometheus-server` in the `prometheus` namespace and add new scrape configurations:
+
+```bash
+- job_name: 'ml-pipeline'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['ml-pipeline.kubeflow.svc:8888']
+
+- job_name: 'katib-controller'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['katib-controller.kubeflow.svc:8080']
+
+- job_name: 'notebook-controller'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['notebook-controller-service.kubeflow.svc:8080']
+```
+
 #### Modify trust policies on service roles
 
 If you use IRSA with Kubeflow profiles, you need to adjust the trust policies so they can be used by the new cluster.
@@ -437,3 +467,7 @@ Note that we only need pods as Velero looks for pods with associated podvolumeba
 ### Pod logs
 
 Pod logs are only preserved if you use Container Insights to archive logs to CloudWatch. 
+
+### Prometheus and Grafana
+
+If you use Prometheus, you will get a new AMP workspace for the new cluster. You can add it as a data source for your existing Grafana deployment.
