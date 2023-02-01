@@ -139,6 +139,7 @@ module "amp" {
 
 module "eks_blueprints_kubernetes_addons" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints//modules/kubernetes-addons?ref=v4.12.1"
+  depends_on = [module.amp]
 
   eks_cluster_id       = module.eks_blueprints.eks_cluster_id
   eks_cluster_endpoint = module.eks_blueprints.eks_cluster_endpoint
@@ -163,7 +164,7 @@ module "eks_blueprints_kubernetes_addons" {
   aws_for_fluentbit_cw_log_group_name = var.cw_log_group_name
 
   enable_amazon_prometheus = var.use_prometheus
-  amazon_prometheus_workspace_endpoint = module.amp[0].prometheus_ws_prometheus_endpoint
+  amazon_prometheus_workspace_endpoint = var.use_prometheus ? module.amp[0].prometheus_ws_prometheus_endpoint : ""
   amazon_prometheus_workspace_region = local.region
 
   enable_nvidia_device_plugin = local.using_gpu
