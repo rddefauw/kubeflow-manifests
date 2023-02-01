@@ -4,6 +4,6 @@ output "prometheus_ws_arn" {
 output "prometheus_ws_id" {
     value = aws_prometheus_workspace.kubeflow_prometheus.id
 }
-output "prometheus_ws_prometheus_endpoint " {
+output "prometheus_ws_prometheus_endpoint" {
     value = aws_prometheus_workspace.kubeflow_prometheus.prometheus_endpoint 
 }
