@@ -369,7 +369,7 @@ resource "kubernetes_manifest" "fsx_storage_class" {
     "parameters": {
       "subnetId": var.private_subnet_ids[0],
       "securityGroupIds": module.fsx[0].fsx_sg_id,
-      "subnetId": "SCRATCH_2"
+      "deploymentType": "SCRATCH_2"
     }
   }
 }
