@@ -298,9 +298,6 @@ Next, follow the steps in the [Create ingress](https://awslabs.github.io/kubeflo
 
 Finally, follow the steps in [Run a sample inference service](https://awslabs.github.io/kubeflow-manifests/docs/component-guides/kserve/tutorial/#run-a-sample-inferenceservice) to add an authorization policy.
 
-#### Set permissions for FSx
-
-Set the permissions for FSx volumes as described [here](https://awslabs.github.io/kubeflow-manifests/docs/add-ons/storage/fsx-for-lustre/guide/#32-note-about-permissions).
 
 #### Configure Prometheus
 
