@@ -14,7 +14,7 @@ Download one of our deployment options by following the directions at: https://a
 
 **Note:** The steps below will assume you are sitting in the kubeflow-manifests directory.
 
-## Steps to Setup Prometheus and AMP
+## Steps to Setup Prometheus and AMP (Manifest deployment)
 1. Export cluster name and region as environment variables:
     1. Make sure to replace the following in the below commands:
         * **\<your-cluster-name\>**
@@ -64,6 +64,36 @@ Download one of our deployment options by following the directions at: https://a
     1. ```bash
        kustomize build deployments/add-ons/prometheus | kubectl apply -f -
        ```
+
+## Steps to Setup Prometheus and AMP (Terraform deployment)
+
+The Terraform deployment creates the AMP cluster and configures EKS to publish metrics there. We can set up additional scraping to send Kubeflow metrics to AMP as well.
+
+Run:
+
+   kubectl patch deployment notebook-controller-deployment -n kubeflow \
+      --patch-file deployments/add-ons/prometheus-config/notebook-controller-deployment-patch.yaml
+   kubectl patch service notebook-controller-service -n kubeflow \
+      --patch-file deployments/add-ons/prometheus-config/notebook-controller-service-patch.yaml
+
+Now edit the config map `prometheus-server` in the `prometheus` namespace and add new scrape configurations:
+
+```bash
+- job_name: 'ml-pipeline'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['ml-pipeline.kubeflow.svc:8888']
+
+- job_name: 'katib-controller'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['katib-controller.kubeflow.svc:8080']
+
+- job_name: 'notebook-controller'
+   scrape_interval: 60s
+   static_configs:
+      - targets: ['notebook-controller-service.kubeflow.svc:8080']
+```
 
 ## Steps to Verify Prometheus and AMP are Connected
 1. Make sure you have awscurl installed:
